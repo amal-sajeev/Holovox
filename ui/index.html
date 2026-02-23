@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AudioBook Player</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/ui/css/styles.css">
+</head>
+<body>
+    <!-- Boot Screen -->
+    <div id="boot-screen">
+        <svg id="boot-logo" viewBox="0 0 100 100" fill="#555">
+            <circle cx="50" cy="50" r="48" fill="none" stroke="#333" stroke-width="2"/>
+            <circle cx="50" cy="50" r="20" fill="#333"/>
+            <circle cx="50" cy="50" r="10" fill="#555"/>
+            <rect x="48" y="2" width="4" height="20" fill="#333"/>
+            <rect x="48" y="78" width="4" height="20" fill="#333"/>
+            <rect x="2" y="48" width="20" height="4" fill="#333"/>
+            <rect x="78" y="48" width="20" height="4" fill="#333"/>
+            <rect x="14" y="14" width="4" height="14" fill="#333" transform="rotate(45 16 21)"/>
+            <rect x="82" y="14" width="4" height="14" fill="#333" transform="rotate(-45 84 21)"/>
+            <rect x="14" y="72" width="4" height="14" fill="#333" transform="rotate(-45 16 79)"/>
+            <rect x="82" y="72" width="4" height="14" fill="#333" transform="rotate(45 84 79)"/>
+        </svg>
+        <div id="boot-lines"></div>
+        <div id="boot-progress-bar"><div id="boot-progress-fill"></div></div>
+    </div>
+
+    <div id="player-frame">
+
+        <!-- Title Bar (draggable) -->
+        <div id="title-bar" class="pywebview-drag-region">
+            <div id="title-inner" class="pywebview-no-drag">
+                <div class="rank-bars">
+                    <span></span><span></span><span></span>
+                </div>
+                <svg class="imperial-cog" viewBox="0 0 100 100" fill="#999">
+                    <circle cx="50" cy="50" r="20" fill="none" stroke="#999" stroke-width="4"/>
+                    <circle cx="50" cy="50" r="8"/>
+                    <rect x="48" y="5" width="4" height="18"/>
+                    <rect x="48" y="77" width="4" height="18"/>
+                    <rect x="5" y="48" width="18" height="4"/>
+                    <rect x="77" y="48" width="18" height="4"/>
+                    <rect x="17" y="17" width="4" height="14" transform="rotate(45 19 24)"/>
+                    <rect x="79" y="17" width="4" height="14" transform="rotate(-45 81 24)"/>
+                    <rect x="17" y="69" width="4" height="14" transform="rotate(-45 19 76)"/>
+                    <rect x="79" y="69" width="4" height="14" transform="rotate(45 81 76)"/>
+                </svg>
+                <span id="title-text">AudioBook Player</span>
+                <svg class="imperial-cog" viewBox="0 0 100 100" fill="#999">
+                    <circle cx="50" cy="50" r="20" fill="none" stroke="#999" stroke-width="4"/>
+                    <circle cx="50" cy="50" r="8"/>
+                    <rect x="48" y="5" width="4" height="18"/>
+                    <rect x="48" y="77" width="4" height="18"/>
+                    <rect x="5" y="48" width="18" height="4"/>
+                    <rect x="77" y="48" width="18" height="4"/>
+                    <rect x="17" y="17" width="4" height="14" transform="rotate(45 19 24)"/>
+                    <rect x="79" y="17" width="4" height="14" transform="rotate(-45 81 24)"/>
+                    <rect x="17" y="69" width="4" height="14" transform="rotate(-45 19 76)"/>
+                    <rect x="79" y="69" width="4" height="14" transform="rotate(45 81 76)"/>
+                </svg>
+                <div class="rank-bars rank-bars-r">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+            <div id="window-controls" class="pywebview-no-drag">
+                <button id="btn-minimize" title="Minimize">&#x2500;</button>
+                <button id="btn-close" title="Close">&#x2715;</button>
+            </div>
+        </div>
+
+        <div class="accent-strip accent-strip-cyan"></div>
+        <span class="panel-label">SEC-7 // CHRONO DISPLAY <span class="label-aurebesh">CHRONO</span></span>
+        <!-- Time Display Row -->
+        <div class="panel-bezel">
+            <div id="time-row" class="pywebview-drag-region">
+                <div id="status-leds">
+                    <span class="led led-on"></span>
+                    <span class="led led-on"></span>
+                    <span class="led led-cyan"></span>
+                    <span class="led led-dim"></span>
+                    <span class="led led-amber"></span>
+                </div>
+                <div id="time-display">
+                    <span id="time-current">00:00</span>
+                    <span class="time-sep"> / </span>
+                    <span id="time-total">00:00</span>
+                </div>
+                <div id="time-remaining">-00:00</div>
+            </div>
+        </div>
+
+        <div class="accent-strip accent-strip-green"></div>
+        <span class="panel-label">SEC-12 // COMM READOUT <span class="label-aurebesh">COMM</span></span>
+        <!-- Main Display: current segment with word highlighting -->
+        <div id="display-wrapper">
+            <div class="panel-bezel">
+                <div id="main-display" class="recessed-screen">
+                    <canvas id="data-stream-canvas"></canvas>
+                    <div id="main-display-text">
+                        <span class="display-placeholder aurebesh" data-en="[ AWAITING SIGNAL ]">[ AWAITING SIGNAL ]</span>
+                    </div>
+                    <div id="scanline-overlay"></div>
+                </div>
+            </div>
+            <div id="progress-bar-container">
+                <div id="progress-bar">
+                    <div id="progress-fill"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tech-readout"><div class="tech-readout-inner" id="tech-readout-text"></div></div>
+        <div class="accent-strip accent-strip-cyan"></div>
+        <!-- Main Controls Area (two columns) -->
+        <div id="controls-area">
+
+            <!-- Left Column: Transport + Skip -->
+            <div class="panel-bezel panel-bezel--left">
+                <div id="left-controls">
+                    <span class="panel-label" style="justify-content:center;">SEC-4 // TRANSPORT <span class="label-aurebesh">TRANSPORT</span></span>
+                    <div id="transport-buttons">
+                        <button class="transport-btn" id="btn-rewind" title="Rewind">
+                            <img src="/assets/rewind_button_off.png" class="btn-off" alt="" draggable="false">
+                            <img src="/assets/rewind_button_on.png" class="btn-on" alt="" draggable="false">
+                        </button>
+                        <button class="transport-btn active" id="btn-play" title="Play">
+                            <img src="/assets/play_button_off.png" class="btn-off" alt="" draggable="false">
+                            <img src="/assets/play_button_on.png" class="btn-on" alt="" draggable="false">
+                        </button>
+                        <button class="transport-btn" id="btn-pause" title="Pause">
+                            <img src="/assets/pause_button_off.png" class="btn-off" alt="" draggable="false">
+                            <img src="/assets/pause_button_on.png" class="btn-on" alt="" draggable="false">
+                        </button>
+                        <button class="transport-btn" id="btn-ff" title="Fast Forward">
+                            <img src="/assets/fast_forward_button_off.png" class="btn-off" alt="" draggable="false">
+                            <img src="/assets/fast_forward_button_on.png" class="btn-on" alt="" draggable="false">
+                        </button>
+                        <button class="transport-btn" id="btn-stop" title="Stop">
+                            <img src="/assets/stop_button_off.png" class="btn-off" alt="" draggable="false">
+                            <img src="/assets/stop_button_on.png" class="btn-on" alt="" draggable="false">
+                        </button>
+                    </div>
+
+                    <div id="skip-buttons">
+                        <button class="skip-btn" data-skip="-5">-5</button>
+                        <button class="skip-btn" data-skip="5">+5</button>
+                        <span id="speed-indicator">1.0x</span>
+                        <button class="skip-btn" data-skip="10">+10</button>
+                        <button class="skip-btn" data-skip="10">+10</button>
+                        <button class="skip-btn" data-skip="30">+30</button>
+                    </div>
+
+                    <span class="panel-label" style="justify-content:center; padding-top:8px; padding-bottom:8px;">AUDIO MODULATION <span class="label-aurebesh">AUDIO</span></span>
+                    <!-- Knobs -->
+                    <div id="knobs-area">
+                        <div class="knob-group">
+                            <div class="knob-wrapper">
+                                <span class="knob-side-label knob-mark">0x</span>
+                                <div class="knob" id="volume-knob" data-min="0" data-max="1.4" data-value="1.0" data-default="1.0">
+                                    <img src="/assets/dial_90_degree.png" class="knob-img" alt="Volume" draggable="false">
+                                </div>
+                                <span class="knob-side-label knob-mark">1.4x</span>
+                            </div>
+                            <div class="knob-label">VOLUME</div>
+                        </div>
+
+                        <div class="knob-group">
+                            <div class="knob-wrapper">
+                                <span class="knob-side-label knob-mark">0.5x</span>
+                                <div class="knob" id="speed-knob" data-min="0.5" data-max="2.0" data-value="1.0" data-default="1.0">
+                                    <img src="/assets/dial_90_degree.png" class="knob-img" alt="Speed" draggable="false">
+                                </div>
+                                <span class="knob-side-label knob-mark">2.0x</span>
+                            </div>
+                            <div class="knob-label">PLAYBACK SPEED</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Transcript + Utilities -->
+            <div id="right-controls">
+                <span class="panel-label">SEC-9 // TRANSCRIPTION <span class="label-aurebesh">SIGNAL</span></span>
+                <div class="panel-bezel panel-bezel--transcript">
+                    <div id="transcript-panel" class="recessed-screen">
+                        <div id="transcript-content">
+                            <p class="placeholder-text">Load an audiobook to begin transcription...</p>
+                        </div>
+                        <div id="transcript-scanline"></div>
+                    </div>
+                </div>
+
+                <div id="utility-row">
+                    <div class="led-cluster">
+                        <span class="led led-small led-cyan"></span>
+                        <span class="led led-small led-amber"></span>
+                        <span class="led led-small led-dim"></span>
+                    </div>
+                    <button class="util-btn" id="btn-bookmarks">BOOKMARKS</button>
+                    <button class="util-btn" id="btn-settings">SETTINGS</button>
+                    <div class="led-cluster">
+                        <span class="led led-small led-on"></span>
+                        <span class="led led-small led-on"></span>
+                        <span class="led led-small led-red"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Library Overlay -->
+    <div id="library-overlay" class="overlay hidden">
+        <div id="library-panel" class="overlay-panel">
+            <div class="overlay-header">
+                <span class="overlay-title">AUDIOBOOK LIBRARY</span>
+                <button class="overlay-close" id="library-close">&#x2715;</button>
+            </div>
+            <div class="overlay-actions">
+                <button class="util-btn" id="btn-open-file">OPEN FILE</button>
+                <button class="util-btn" id="btn-set-folder">SET LIBRARY FOLDER</button>
+                <span id="library-folder-path" class="folder-path"></span>
+            </div>
+            <div id="library-list" class="recessed-screen">
+                <div id="library-items"></div>
+                <div class="scanline-effect"></div>
+            </div>
+            <div id="recent-section">
+                <div class="section-label">RECENT FILES</div>
+                <div id="recent-list" class="recessed-screen">
+                    <div id="recent-items"></div>
+                    <div class="scanline-effect"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bookmarks Overlay -->
+    <div id="bookmarks-overlay" class="overlay hidden">
+        <div id="bookmarks-panel" class="overlay-panel overlay-panel-small">
+            <div class="overlay-header">
+                <span class="overlay-title">BOOKMARKS</span>
+                <button class="overlay-close" id="bookmarks-close">&#x2715;</button>
+            </div>
+            <div class="overlay-actions">
+                <button class="util-btn" id="btn-add-bookmark">ADD BOOKMARK</button>
+            </div>
+            <div id="bookmarks-list" class="recessed-screen">
+                <div id="bookmark-items"></div>
+                <div class="scanline-effect"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Overlay -->
+    <div id="settings-overlay" class="overlay hidden">
+        <div id="settings-panel" class="overlay-panel overlay-panel-small">
+            <div class="overlay-header">
+                <span class="overlay-title">SETTINGS</span>
+                <button class="overlay-close" id="settings-close">&#x2715;</button>
+            </div>
+            <div id="settings-content" class="recessed-screen">
+                <div class="setting-row">
+                    <label class="setting-label">Whisper Model</label>
+                    <select id="setting-model" class="setting-select">
+                        <option value="tiny">Tiny (fastest)</option>
+                        <option value="base" selected>Base (balanced)</option>
+                        <option value="small">Small (better)</option>
+                        <option value="medium">Medium (best)</option>
+                    </select>
+                </div>
+                <div class="setting-row">
+                    <label class="setting-toggle">
+                        <input type="checkbox" id="setting-mute">
+                        <span class="setting-label">Mute UI Sounds</span>
+                    </label>
+                </div>
+                <div class="setting-row">
+                    <label class="setting-label">Language</label>
+                    <select id="setting-language" class="setting-select">
+                        <option value="auto">Auto-detect</option>
+                        <option value="en">English</option>
+                        <option value="es">Spanish</option>
+                        <option value="fr">French</option>
+                        <option value="de">German</option>
+                        <option value="it">Italian</option>
+                        <option value="pt">Portuguese</option>
+                        <option value="ja">Japanese</option>
+                        <option value="ko">Korean</option>
+                        <option value="zh">Chinese</option>
+                        <option value="ru">Russian</option>
+                        <option value="ar">Arabic</option>
+                        <option value="hi">Hindi</option>
+                    </select>
+                </div>
+                <div class="scanline-effect"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden audio element -->
+    <audio id="audio-element" preload="auto" crossorigin="anonymous"></audio>
+
+    <script src="/ui/js/sounds.js"></script>
+    <script src="/ui/js/app.js"></script>
+    <script src="/ui/js/visualizer.js"></script>
+    <script src="/ui/js/knob.js"></script>
+    <script src="/ui/js/transcription.js"></script>
+    <script src="/ui/js/library.js"></script>
+    <script src="/ui/js/boot.js"></script>
+</body>
+</html>
