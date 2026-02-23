@@ -27,6 +27,18 @@
         </svg>
         <div id="boot-lines"></div>
         <div id="boot-progress-bar"><div id="boot-progress-fill"></div></div>
+
+        <div id="boot-model-select" class="boot-hidden">
+            <div id="boot-model-title">SELECT WHISPER MODEL</div>
+            <div id="boot-model-subtitle">Choose a speech recognition model to download</div>
+            <div id="boot-model-grid"></div>
+        </div>
+
+        <div id="boot-download-status" class="boot-hidden">
+            <div id="boot-download-label"></div>
+            <div id="boot-download-bar"><div id="boot-download-fill"></div></div>
+            <div id="boot-download-detail">First-time setup — model will be cached locally</div>
+        </div>
     </div>
 
     <div id="player-frame">
@@ -146,10 +158,11 @@
                     </div>
 
                     <div id="skip-buttons">
+                        <button class="skip-btn" data-skip="-30">-30</button>
+                        <button class="skip-btn" data-skip="-10">-10</button>
                         <button class="skip-btn" data-skip="-5">-5</button>
-                        <button class="skip-btn" data-skip="5">+5</button>
                         <span id="speed-indicator">1.0x</span>
-                        <button class="skip-btn" data-skip="10">+10</button>
+                        <button class="skip-btn" data-skip="5">+5</button>
                         <button class="skip-btn" data-skip="10">+10</button>
                         <button class="skip-btn" data-skip="30">+30</button>
                     </div>

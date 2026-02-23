@@ -59,15 +59,25 @@ const Transcription = (() => {
                 stopPolling();
                 updateStatusIndicator('complete');
                 updateProgressDisplay(null);
+            } else if (progress.status === 'downloading') {
+                updateStatusIndicator('loading');
+                updateProgressDisplay('downloading', progress.download_percent, progress.model_name);
+                updateSidebarStatus('Downloading model: ' + (progress.model_name || '').toUpperCase() + ' — ' + Math.round(progress.download_percent || 0) + '%');
             } else if (progress.status === 'loading') {
                 updateStatusIndicator('loading');
                 updateProgressDisplay('loading', 0);
                 updateSidebarStatus('Loading speech model...');
             } else if (progress.status === 'transcribing') {
                 updateStatusIndicator('transcribing', progress.percent);
-                updateProgressDisplay('transcribing', progress.percent);
+                updateProgressDisplay('transcribing', progress.percent, null, progress.duration);
                 if (segments.length === 0) {
-                    updateSidebarStatus('Transcribing — ' + Math.round(progress.percent) + '%');
+                    if (progress.percent === 0 && progress.duration) {
+                        var mins = Math.floor(progress.duration / 60);
+                        var durLabel = mins > 0 ? mins + ' min' : Math.round(progress.duration) + 's';
+                        updateSidebarStatus('Processing ' + durLabel + ' of audio — please wait');
+                    } else {
+                        updateSidebarStatus('Transcribing — ' + Math.round(progress.percent) + '%');
+                    }
                 }
             }
         });
@@ -186,7 +196,7 @@ const Transcription = (() => {
         }
     }
 
-    function updateProgressDisplay(status, percent) {
+    function updateProgressDisplay(status, percent, modelName, duration) {
         const mainDisplay = document.getElementById('main-display-text');
         if (!mainDisplay) return;
 
@@ -198,14 +208,37 @@ const Transcription = (() => {
         }
 
         const pct = Math.round(percent || 0);
-        const barWidth = 200;
-        const filled = Math.round(barWidth * pct / 100);
 
-        if (status === 'loading') {
+        if (status === 'downloading') {
+            const name = (modelName || 'whisper').toUpperCase();
+            mainDisplay.innerHTML =
+                '<div class="transcription-progress">' +
+                    '<div class="progress-status">DOWNLOADING MODEL: ' + name + ' — ' + pct + '%</div>' +
+                    '<div class="progress-bar-inline">' +
+                        '<div class="progress-bar-track">' +
+                            '<div class="progress-bar-fill" style="width:' + pct + '%"></div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="progress-detail">First-time setup — model will be cached locally</div>' +
+                '</div>';
+        } else if (status === 'loading') {
             mainDisplay.innerHTML =
                 '<div class="transcription-progress">' +
                     '<div class="progress-status">LOADING WHISPER MODEL<span class="loading-dots"></span></div>' +
                     '<div class="progress-detail">Initializing speech recognition</div>' +
+                '</div>';
+        } else if (pct === 0 && segments.length === 0) {
+            var detail = 'Analyzing speech patterns — this may take a moment';
+            if (duration) {
+                var mins = Math.floor(duration / 60);
+                detail = mins > 0
+                    ? 'Processing ' + mins + ' min of audio — this may take a moment'
+                    : 'Processing ' + Math.round(duration) + 's of audio';
+            }
+            mainDisplay.innerHTML =
+                '<div class="transcription-progress">' +
+                    '<div class="progress-status">TRANSCRIBING AUDIO<span class="loading-dots"></span></div>' +
+                    '<div class="progress-detail">' + detail + '</div>' +
                 '</div>';
         } else {
             mainDisplay.innerHTML =

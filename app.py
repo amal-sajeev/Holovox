@@ -25,6 +25,28 @@ CACHE_DIR.mkdir(exist_ok=True)
 
 AUDIO_EXTENSIONS = {'.mp3', '.m4a', '.m4b', '.flac', '.wav', '.ogg'}
 
+MODEL_INFO = {
+    'tiny':             {'desc': 'Fastest, least accurate',     'size': '~75 MB'},
+    'tiny.en':          {'desc': 'Fastest, English only',       'size': '~75 MB'},
+    'base':             {'desc': 'Fast, good accuracy',         'size': '~150 MB'},
+    'base.en':          {'desc': 'Fast, English only',          'size': '~150 MB'},
+    'small':            {'desc': 'Balanced speed/accuracy',     'size': '~500 MB'},
+    'small.en':         {'desc': 'Balanced, English only',      'size': '~500 MB'},
+    'medium':           {'desc': 'High accuracy, slower',       'size': '~1.5 GB'},
+    'medium.en':        {'desc': 'High accuracy, English only', 'size': '~1.5 GB'},
+    'large-v1':         {'desc': 'Very high accuracy',          'size': '~3 GB'},
+    'large-v2':         {'desc': 'Improved large',              'size': '~3 GB'},
+    'large-v3':         {'desc': 'Best accuracy',               'size': '~3 GB'},
+    'large':            {'desc': 'Best accuracy (alias v3)',    'size': '~3 GB'},
+    'turbo':            {'desc': 'Large quality, faster',       'size': '~1.6 GB'},
+    'large-v3-turbo':   {'desc': 'Large quality, faster',       'size': '~1.6 GB'},
+    'distil-small.en':  {'desc': 'Distilled small, English',    'size': '~400 MB'},
+    'distil-medium.en': {'desc': 'Distilled medium, English',   'size': '~800 MB'},
+    'distil-large-v2':  {'desc': 'Distilled large v2',          'size': '~1.5 GB'},
+    'distil-large-v3':  {'desc': 'Distilled large v3',          'size': '~1.5 GB'},
+    'distil-large-v3.5':{'desc': 'Distilled large v3.5',        'size': '~1.5 GB'},
+}
+
 
 class AudioHandler(BaseHTTPRequestHandler):
     """HTTP handler serving UI files, assets, and audio with range-request support."""
@@ -85,7 +107,11 @@ class AudioHandler(BaseHTTPRequestHandler):
                 end = int(parts[1]) if parts[1] else file_size - 1
                 end = min(end, file_size - 1)
                 length = end - start + 1
+            except (ValueError, IndexError):
+                self.send_error(416)
+                return
 
+            try:
                 self.send_response(206)
                 self.send_header('Content-Type', content_type)
                 self.send_header('Content-Length', length)
@@ -103,23 +129,26 @@ class AudioHandler(BaseHTTPRequestHandler):
                             break
                         self.wfile.write(chunk)
                         remaining -= len(chunk)
-            except Exception:
-                self.send_error(416)
+            except (ConnectionError, BrokenPipeError, OSError):
+                return
         else:
-            self.send_response(200)
-            self.send_header('Content-Type', content_type)
-            self.send_header('Content-Length', file_size)
-            if range_support:
-                self.send_header('Accept-Ranges', 'bytes')
-            self._cors_headers()
-            self.end_headers()
+            try:
+                self.send_response(200)
+                self.send_header('Content-Type', content_type)
+                self.send_header('Content-Length', file_size)
+                if range_support:
+                    self.send_header('Accept-Ranges', 'bytes')
+                self._cors_headers()
+                self.end_headers()
 
-            with open(filepath, 'rb') as f:
-                while True:
-                    chunk = f.read(65536)
-                    if not chunk:
-                        break
-                    self.wfile.write(chunk)
+                with open(filepath, 'rb') as f:
+                    while True:
+                        chunk = f.read(65536)
+                        if not chunk:
+                            break
+                        self.wfile.write(chunk)
+            except (ConnectionError, BrokenPipeError, OSError):
+                return
 
     def log_message(self, format, *args):
         pass
@@ -130,9 +159,13 @@ class API:
 
     def __init__(self, server_port):
         self._server_port = server_port
-        self._transcriber = TranscriptionEngine(CACHE_DIR)
         self._current_file = None
         self._load_settings()
+        self._transcriber = TranscriptionEngine(
+            CACHE_DIR,
+            model_name=self._settings.get('whisper_model', 'base'),
+            language=self._settings.get('language', 'auto'),
+        )
 
     # ── Settings persistence ──────────────────────────────────────────
 
@@ -202,6 +235,33 @@ class API:
 
     def get_cached_transcription(self, filepath):
         return self._transcriber.get_cached(filepath)
+
+    # ── Model management (launcher) ───────────────────────────────────
+
+    def get_available_models(self):
+        raw = self._transcriber.get_available_models()
+        configured = self._settings.get('whisper_model', 'base')
+        result = []
+        for m in raw:
+            info = MODEL_INFO.get(m['name'], {})
+            result.append({
+                'name': m['name'],
+                'cached': m['cached'],
+                'desc': info.get('desc', ''),
+                'size': info.get('size', ''),
+                'configured': m['name'] == configured,
+            })
+        return result
+
+    def download_model(self, name):
+        self._transcriber.set_model(name)
+        self._settings['whisper_model'] = name
+        self._save_settings()
+        self._transcriber.download_model(name)
+        return True
+
+    def get_download_progress(self):
+        return self._transcriber.get_download_progress()
 
     # ── Library ───────────────────────────────────────────────────────
 
@@ -280,6 +340,10 @@ class API:
     def update_settings(self, key, value):
         self._settings[key] = value
         self._save_settings()
+        if key == 'whisper_model':
+            self._transcriber.set_model(value)
+        elif key == 'language':
+            self._transcriber.set_language(value)
         return True
 
     # ── Window control ────────────────────────────────────────────────

@@ -74,6 +74,7 @@ const App = (() => {
         currentFile = fileInfo;
         audio.src = fileInfo.url;
         audio.load();
+        stopDataStream();
 
         document.getElementById('title-text').textContent =
             fileInfo.filename || 'AudioBook Player';
@@ -82,6 +83,8 @@ const App = (() => {
 
         if (pyApi) {
             pyApi.start_transcription(fileInfo.filepath).then(() => {
+                Transcription.startPolling(pyApi);
+            }).catch(() => {
                 Transcription.startPolling(pyApi);
             });
         }
