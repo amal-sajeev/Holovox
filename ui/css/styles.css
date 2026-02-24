@@ -39,13 +39,14 @@
 html {
     width: 100%;
     height: 100%;
-    background: transparent;
+    background: #0a0c0e;
 }
 
 body {
     width: 100%;
     height: 100%;
     overflow: hidden;
+    padding-top: 4px;
     background-image: url('/assets/Brushed_gunmetal%20light.png');
     background-size: 200px 200px;
     background-repeat: repeat;
@@ -54,12 +55,6 @@ body {
     user-select: none;
     -webkit-user-select: none;
     cursor: default;
-    clip-path: polygon(
-        20px 0%, calc(100% - 20px) 0%,
-        100% 20px, 100% calc(100% - 20px),
-        calc(100% - 20px) 100%, 20px 100%,
-        0% calc(100% - 20px), 0% 20px
-    );
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1294,6 +1289,52 @@ body {
 }
 
 #boot-download-detail {
+    font-family: var(--font-tech);
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: rgba(0, 212, 255, 0.4);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MODEL DOWNLOAD OVERLAY
+   ═══════════════════════════════════════════════════════════════ */
+
+#download-overlay-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 40px 30px;
+}
+
+#download-overlay-label {
+    font-family: var(--font-tech);
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: var(--amber);
+    text-shadow: var(--glow-amber);
+    text-align: center;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+#download-overlay-bar {
+    width: 100%;
+    height: 6px;
+    background: #0a0a0a;
+    border: 1px solid #333;
+    clip-path: polygon(4px 0%, calc(100% - 4px) 0%, 100% 50%, calc(100% - 4px) 100%, 4px 100%, 0% 50%);
+    overflow: hidden;
+}
+
+#download-overlay-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--amber), #ffcc00);
+    box-shadow: 0 0 8px rgba(255, 149, 0, 0.5);
+    transition: width 0.4s ease-out;
+}
+
+#download-overlay-detail {
     font-family: var(--font-tech);
     font-size: 10px;
     letter-spacing: 1px;

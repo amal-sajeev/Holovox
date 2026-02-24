@@ -340,8 +340,18 @@ const App = (() => {
         });
 
         const modelSel = document.getElementById('setting-model');
-        modelSel.addEventListener('change', () => {
-            if (pyApi) pyApi.update_settings('whisper_model', modelSel.value);
+        modelSel.addEventListener('change', async () => {
+            if (!pyApi) return;
+            const name = modelSel.value;
+            const models = await pyApi.get_available_models();
+            const model = models.find(m => m.name === name);
+
+            if (model && model.cached) {
+                pyApi.update_settings('whisper_model', name);
+            } else {
+                hideOverlay('settings-overlay');
+                startModelDownload(name);
+            }
         });
 
         const langSel = document.getElementById('setting-language');
@@ -368,7 +378,7 @@ const App = (() => {
 
         document.querySelectorAll('.overlay').forEach(overlay => {
             overlay.addEventListener('click', e => {
-                if (e.target === overlay) {
+                if (e.target === overlay && overlay.id !== 'download-overlay') {
                     overlay.classList.add('hidden');
                 }
             });
@@ -388,6 +398,48 @@ const App = (() => {
 
     function closeAllOverlays() {
         document.querySelectorAll('.overlay').forEach(o => o.classList.add('hidden'));
+    }
+
+    // ── Model download overlay ───────────────────────────────────
+
+    function startModelDownload(name) {
+        const overlay = document.getElementById('download-overlay');
+        const label = document.getElementById('download-overlay-label');
+        const fill = document.getElementById('download-overlay-fill');
+        const detail = document.getElementById('download-overlay-detail');
+
+        label.textContent = 'DOWNLOADING: ' + name.toUpperCase() + ' — 0%';
+        fill.style.width = '0%';
+        detail.textContent = 'Model will be cached locally for future use';
+        overlay.classList.remove('hidden');
+
+        pyApi.download_model(name);
+
+        const poll = setInterval(async () => {
+            try {
+                const p = await pyApi.get_download_progress();
+                if (p.status === 'downloading') {
+                    const pct = Math.round(p.percent || 0);
+                    label.textContent = 'DOWNLOADING: ' + name.toUpperCase() + ' — ' + pct + '%';
+                    fill.style.width = pct + '%';
+                } else if (p.status === 'complete') {
+                    clearInterval(poll);
+                    label.textContent = 'MODEL READY';
+                    fill.style.width = '100%';
+                    detail.textContent = name.toUpperCase() + ' cached — ready for use';
+                    Sounds.click();
+                    setTimeout(() => overlay.classList.add('hidden'), 1200);
+                } else if (p.status === 'error') {
+                    clearInterval(poll);
+                    label.textContent = 'DOWNLOAD FAILED';
+                    fill.style.width = '0%';
+                    detail.textContent = p.error || 'Unknown error';
+                    setTimeout(() => overlay.classList.add('hidden'), 3000);
+                }
+            } catch (_) {
+                clearInterval(poll);
+            }
+        }, 500);
     }
 
     // ── Tech readout scrolling text ──────────────────────────────

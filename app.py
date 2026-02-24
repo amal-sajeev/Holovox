@@ -361,6 +361,22 @@ class API:
     def minimize_window(self):
         webview.windows[0].minimize()
 
+    def get_window_geometry(self):
+        w = webview.windows[0]
+        return {'x': w.x, 'y': w.y, 'w': w.width, 'h': w.height}
+
+    def set_window_rect(self, x, y, w, h):
+        if sys.platform == 'win32':
+            import ctypes
+            hwnd = ctypes.windll.user32.FindWindowW(None, 'AudioBook Player')
+            if hwnd:
+                ctypes.windll.user32.SetWindowPos(
+                    hwnd, 0, int(x), int(y), int(w), int(h), 0x0004)
+                return
+        win = webview.windows[0]
+        win.resize(int(w), int(h))
+        win.move(int(x), int(y))
+
 
 def find_free_port():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -387,10 +403,11 @@ def main():
         js_api=api,
         width=900,
         height=720,
-        frameless=True,
         easy_drag=False,
-        resizable=False,
-        transparent=True,
+        frameless=True,
+        resizable=True,
+        min_size=(700, 500),
+        background_color='#0a0c0e',
     )
 
     webview.start(debug=False)

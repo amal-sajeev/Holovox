@@ -1,6 +1,7 @@
 import threading
 import json
 import hashlib
+import time
 import atexit
 from pathlib import Path
 
@@ -86,12 +87,13 @@ class TranscriptionEngine:
         try:
             import huggingface_hub
             from faster_whisper.utils import _MODELS
-            from tqdm.auto import tqdm
+            import tqdm.auto as tqdm_mod
 
             repo_id = _MODELS.get(name, name)
             engine = self
+            orig_tqdm = tqdm_mod.tqdm
 
-            class _ProgressTqdm(tqdm):
+            class _ProgressTqdm(orig_tqdm):
                 def update(self, n=1):
                     super().update(n)
                     if self.total:
@@ -99,11 +101,14 @@ class TranscriptionEngine:
                         with engine._lock:
                             engine._download_progress['percent'] = pct
 
-            huggingface_hub.snapshot_download(
-                repo_id,
-                allow_patterns=self._ALLOW_PATTERNS,
-                tqdm_class=_ProgressTqdm,
-            )
+            tqdm_mod.tqdm = _ProgressTqdm
+            try:
+                huggingface_hub.snapshot_download(
+                    repo_id,
+                    allow_patterns=self._ALLOW_PATTERNS,
+                )
+            finally:
+                tqdm_mod.tqdm = orig_tqdm
 
             with self._lock:
                 self._download_progress = {
@@ -267,6 +272,7 @@ class TranscriptionEngine:
                 self._progress['duration'] = duration
 
             all_segments = list(prior_segments) if prior_segments else []
+            wall_start = None
 
             print('[Whisper] Waiting for first segment...')
             for segment in segments_iter:
@@ -276,6 +282,9 @@ class TranscriptionEngine:
                 with self._lock:
                     if self._is_stale(filepath):
                         return
+
+                if wall_start is None:
+                    wall_start = time.monotonic()
 
                 words = []
                 if segment.words:
@@ -297,12 +306,17 @@ class TranscriptionEngine:
                 if len(all_segments) == 1:
                     print(f'[Whisper] First segment received: {segment.start:.1f}-{segment.end:.1f}s')
 
+                elapsed = time.monotonic() - wall_start
+                rate = round(segment.end / elapsed, 2) if elapsed > 0.1 else 0
+
                 pct = min(99, int((segment.end / duration) * 100))
                 with self._lock:
                     if self._is_stale(filepath):
                         return
                     self._progress['segments'] = list(all_segments)
                     self._progress['percent'] = pct
+                    self._progress['rate'] = rate
+                    self._progress['transcribed_up_to'] = round(segment.end, 3)
 
             result = {
                 'language': info.language,

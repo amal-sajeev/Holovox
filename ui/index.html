@@ -280,10 +280,21 @@
                 <div class="setting-row">
                     <label class="setting-label">Whisper Model</label>
                     <select id="setting-model" class="setting-select">
-                        <option value="tiny">Tiny (fastest)</option>
-                        <option value="base" selected>Base (balanced)</option>
-                        <option value="small">Small (better)</option>
-                        <option value="medium">Medium (best)</option>
+                        <option value="tiny">Tiny (~75 MB)</option>
+                        <option value="tiny.en">Tiny — English only (~75 MB)</option>
+                        <option value="base" selected>Base (~150 MB)</option>
+                        <option value="base.en">Base — English only (~150 MB)</option>
+                        <option value="small">Small (~500 MB)</option>
+                        <option value="small.en">Small — English only (~500 MB)</option>
+                        <option value="medium">Medium (~1.5 GB)</option>
+                        <option value="medium.en">Medium — English only (~1.5 GB)</option>
+                        <option value="large-v2">Large v2 (~3 GB)</option>
+                        <option value="large-v3">Large v3 (~3 GB)</option>
+                        <option value="turbo">Turbo (~1.6 GB)</option>
+                        <option value="distil-small.en">Distil Small — English (~400 MB)</option>
+                        <option value="distil-medium.en">Distil Medium — English (~800 MB)</option>
+                        <option value="distil-large-v2">Distil Large v2 (~1.5 GB)</option>
+                        <option value="distil-large-v3">Distil Large v3 (~1.5 GB)</option>
                     </select>
                 </div>
                 <div class="setting-row">
@@ -318,9 +329,24 @@
         </div>
     </div>
 
+    <!-- Model Download Overlay -->
+    <div id="download-overlay" class="overlay hidden">
+        <div class="overlay-panel overlay-panel-small">
+            <div class="overlay-header">
+                <span class="overlay-title">MODEL DOWNLOAD</span>
+            </div>
+            <div id="download-overlay-body">
+                <div id="download-overlay-label">DOWNLOADING MODEL...</div>
+                <div id="download-overlay-bar"><div id="download-overlay-fill"></div></div>
+                <div id="download-overlay-detail">Model will be cached locally for future use</div>
+            </div>
+        </div>
+    </div>
+
     <!-- Hidden audio element -->
     <audio id="audio-element" preload="auto" crossorigin="anonymous"></audio>
 
+    <script src="/ui/js/resize.js"></script>
     <script src="/ui/js/sounds.js"></script>
     <script src="/ui/js/app.js"></script>
     <script src="/ui/js/visualizer.js"></script>

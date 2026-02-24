@@ -10,12 +10,17 @@ const Transcription = (() => {
     let lastSegmentCount = 0;
     let isComplete = false;
     let lastActiveIndex = -1;
+    let karaokeReady = false;
+
+    const MIN_BUFFER_SECS = 15;
+    const SAFE_SPEED = 1.2;
 
     function reset() {
         segments = [];
         lastSegmentCount = 0;
         isComplete = false;
         lastActiveIndex = -1;
+        karaokeReady = false;
         stopPolling();
 
         const container = document.getElementById('transcript-content');
@@ -69,14 +74,23 @@ const Transcription = (() => {
                 updateSidebarStatus('Loading speech model...');
             } else if (progress.status === 'transcribing') {
                 updateStatusIndicator('transcribing', progress.percent);
-                updateProgressDisplay('transcribing', progress.percent, null, progress.duration);
-                if (segments.length === 0) {
-                    if (progress.percent === 0 && progress.duration) {
-                        var mins = Math.floor(progress.duration / 60);
-                        var durLabel = mins > 0 ? mins + ' min' : Math.round(progress.duration) + 's';
-                        updateSidebarStatus('Processing ' + durLabel + ' of audio — please wait');
-                    } else {
-                        updateSidebarStatus('Transcribing — ' + Math.round(progress.percent) + '%');
+
+                if (!karaokeReady) {
+                    karaokeReady = checkKaraokeReady(progress);
+                }
+
+                if (karaokeReady) {
+                    updateProgressDisplay(null);
+                } else {
+                    updateProgressDisplay('transcribing', progress.percent, null, progress.duration, progress.rate);
+                    if (segments.length === 0) {
+                        if (progress.percent === 0 && progress.duration) {
+                            var mins = Math.floor(progress.duration / 60);
+                            var durLabel = mins > 0 ? mins + ' min' : Math.round(progress.duration) + 's';
+                            updateSidebarStatus('Processing ' + durLabel + ' of audio — please wait');
+                        } else {
+                            updateSidebarStatus('Transcribing — ' + Math.round(progress.percent) + '%');
+                        }
                     }
                 }
             }
@@ -188,6 +202,29 @@ const Transcription = (() => {
         updateMainDisplay(activeIndex, currentTime);
     }
 
+    function checkKaraokeReady(progress) {
+        var rate = progress.rate || 0;
+        var transcribedTo = progress.transcribed_up_to || 0;
+        var duration = progress.duration || 0;
+
+        if (transcribedTo <= 0 || rate <= 0 || duration <= 0) return false;
+
+        var audio = App.getAudio();
+        var playbackPos = audio ? audio.currentTime || 0 : 0;
+        var buffer = transcribedTo - playbackPos;
+
+        if (buffer < MIN_BUFFER_SECS) return false;
+
+        if (rate >= SAFE_SPEED) return true;
+
+        // rate < 1.2: check if transcription finishes before playback catches up
+        // Playback catches transcription at wall-time t = buffer / (SAFE_SPEED - rate)
+        // Position at that moment = playbackPos + SAFE_SPEED * t
+        // Safe if that position >= duration (they'd only meet past the end)
+        var meetPos = playbackPos + SAFE_SPEED * buffer / (SAFE_SPEED - rate);
+        return meetPos >= duration;
+    }
+
     function updateSidebarStatus(text) {
         const container = document.getElementById('transcript-content');
         const placeholder = container.querySelector('.placeholder-text');
@@ -196,7 +233,7 @@ const Transcription = (() => {
         }
     }
 
-    function updateProgressDisplay(status, percent, modelName, duration) {
+    function updateProgressDisplay(status, percent, modelName, duration, rate) {
         const mainDisplay = document.getElementById('main-display-text');
         if (!mainDisplay) return;
 
@@ -241,6 +278,7 @@ const Transcription = (() => {
                     '<div class="progress-detail">' + detail + '</div>' +
                 '</div>';
         } else {
+            var rateLabel = rate ? ' — ' + rate.toFixed(1) + 'x realtime' : '';
             mainDisplay.innerHTML =
                 '<div class="transcription-progress">' +
                     '<div class="progress-status">TRANSCRIBING AUDIO — ' + pct + '%</div>' +
@@ -249,7 +287,7 @@ const Transcription = (() => {
                             '<div class="progress-bar-fill" style="width:' + pct + '%"></div>' +
                         '</div>' +
                     '</div>' +
-                    '<div class="progress-detail">' + segments.length + ' segments decoded</div>' +
+                    '<div class="progress-detail">' + segments.length + ' segments decoded' + rateLabel + '</div>' +
                 '</div>';
         }
     }
