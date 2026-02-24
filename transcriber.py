@@ -168,6 +168,13 @@ class TranscriptionEngine:
             pass
         return None
 
+    def clear_cache(self, filepath):
+        try:
+            self._cache_path(filepath).unlink(missing_ok=True)
+            self._partial_cache_path(filepath).unlink(missing_ok=True)
+        except Exception:
+            pass
+
     def _get_partial(self, filepath):
         try:
             pp = self._partial_cache_path(filepath)

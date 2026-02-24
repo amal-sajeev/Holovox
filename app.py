@@ -236,6 +236,13 @@ class API:
     def get_cached_transcription(self, filepath):
         return self._transcriber.get_cached(filepath)
 
+    def retranscribe(self):
+        if not self._current_file:
+            return False
+        self._transcriber.clear_cache(self._current_file)
+        self._transcriber.start(self._current_file)
+        return True
+
     # ── Model management (launcher) ───────────────────────────────────
 
     def get_available_models(self):

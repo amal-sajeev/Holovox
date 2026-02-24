@@ -357,6 +357,15 @@ const App = (() => {
             });
         }
 
+        document.getElementById('btn-retranscribe').addEventListener('click', () => {
+            if (!pyApi || !currentFile) return;
+            Transcription.reset();
+            hideOverlay('settings-overlay');
+            pyApi.retranscribe().then(() => {
+                Transcription.startPolling(pyApi);
+            });
+        });
+
         document.querySelectorAll('.overlay').forEach(overlay => {
             overlay.addEventListener('click', e => {
                 if (e.target === overlay) {
