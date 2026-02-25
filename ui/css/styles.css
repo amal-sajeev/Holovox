@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════════════════════════════
-   Foobskin - Star Wars Imperial Audiobook Player
+   HoloVox — Sci‑fi console audiobook player
    Visual hierarchy: light metal frame → chamfered panels → dark screens
    ═══════════════════════════════════════════════════════════════ */
 
 @font-face {
-    font-family: 'Aurebesh';
+    font-family: 'DisplayFont';
     src: url('/ui/fonts/aurebesh.woff2') format('woff2'),
          url('/ui/fonts/aurebesh.woff') format('woff');
     font-weight: normal;
@@ -25,7 +25,7 @@
     --glow-amber: 0 0 6px rgba(255, 149, 0, 0.5);
     --font-tech: 'Share Tech Mono', 'Consolas', monospace;
     --font-display: 'Orbitron', 'Consolas', monospace;
-    --font-aurebesh: 'Aurebesh', sans-serif;
+    --font-display: 'DisplayFont', sans-serif;
 
     --frame-pad: 20px;
     --panel-border: 4px;
@@ -108,16 +108,16 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   AUREBESH UTILITY
+   DISPLAY FONT UTILITY (decorative labels, hover for English)
    ═══════════════════════════════════════════════════════════════ */
 
-.aurebesh {
-    font-family: var(--font-aurebesh);
+.display-font {
+    font-family: var(--font-display);
     position: relative;
     cursor: default;
 }
 
-.aurebesh[data-en]::after {
+.display-font[data-en]::after {
     content: attr(data-en);
     position: absolute;
     left: 0; top: 0; right: 0; bottom: 0;
@@ -134,7 +134,7 @@ body {
     text-shadow: inherit;
 }
 
-.aurebesh[data-en]:hover::after { opacity: 1; }
+.display-font[data-en]:hover::after { opacity: 1; }
 
 /* ═══════════════════════════════════════════════════════════════
    PANEL SECTION LABELS - etched into the metal frame
@@ -155,8 +155,8 @@ body {
     z-index: 1;
 }
 
-.panel-label .label-aurebesh {
-    font-family: var(--font-aurebesh);
+.panel-label .label-alt {
+    font-family: var(--font-display);
     font-size: 9px;
     color: rgba(0,212,255,0.25);
     letter-spacing: 1px;
@@ -294,7 +294,7 @@ body {
     gap: 10px;
 }
 
-.imperial-cog {
+.title-logo {
     width: 18px;
     height: 18px;
     opacity: 0.5;
@@ -303,7 +303,7 @@ body {
     transition: opacity 0.3s, filter 0.3s;
 }
 
-#title-inner:hover .imperial-cog {
+#title-inner:hover .title-logo {
     opacity: 0.9;
     filter: drop-shadow(0 0 8px rgba(0,212,255,0.6));
 }
@@ -1380,7 +1380,7 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   IDLE DATA STREAM (Aurebesh matrix rain in main display)
+   IDLE DATA STREAM (display font matrix in main display)
    ═══════════════════════════════════════════════════════════════ */
 
 #data-stream-canvas {
@@ -1454,7 +1454,7 @@ body {
    ═══════════════════════════════════════════════════════════════ */
 
 .tech-readout {
-    font-family: var(--font-aurebesh);
+    font-family: var(--font-display);
     font-size: 8px;
     color: rgba(0,212,255,0.15);
     letter-spacing: 1px;

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AudioBook Player</title>
+    <title>HoloVox</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
@@ -49,7 +49,7 @@
                 <div class="rank-bars">
                     <span></span><span></span><span></span>
                 </div>
-                <svg class="imperial-cog" viewBox="0 0 100 100" fill="#999">
+                <svg class="title-logo" viewBox="0 0 100 100" fill="#999">
                     <circle cx="50" cy="50" r="20" fill="none" stroke="#999" stroke-width="4"/>
                     <circle cx="50" cy="50" r="8"/>
                     <rect x="48" y="5" width="4" height="18"/>
@@ -61,8 +61,8 @@
                     <rect x="17" y="69" width="4" height="14" transform="rotate(-45 19 76)"/>
                     <rect x="79" y="69" width="4" height="14" transform="rotate(45 81 76)"/>
                 </svg>
-                <span id="title-text">AudioBook Player</span>
-                <svg class="imperial-cog" viewBox="0 0 100 100" fill="#999">
+                <span id="title-text">HoloVox</span>
+                <svg class="title-logo" viewBox="0 0 100 100" fill="#999">
                     <circle cx="50" cy="50" r="20" fill="none" stroke="#999" stroke-width="4"/>
                     <circle cx="50" cy="50" r="8"/>
                     <rect x="48" y="5" width="4" height="18"/>
@@ -85,7 +85,7 @@
         </div>
 
         <div class="accent-strip accent-strip-cyan"></div>
-        <span class="panel-label">SEC-7 // CHRONO DISPLAY <span class="label-aurebesh">CHRONO</span></span>
+        <span class="panel-label">SEC-7 // CHRONO DISPLAY <span class="label-alt">CHRONO</span></span>
         <!-- Time Display Row -->
         <div class="panel-bezel">
             <div id="time-row" class="pywebview-drag-region">
@@ -106,14 +106,14 @@
         </div>
 
         <div class="accent-strip accent-strip-green"></div>
-        <span class="panel-label">SEC-12 // COMM READOUT <span class="label-aurebesh">COMM</span></span>
+        <span class="panel-label">SEC-12 // COMM READOUT <span class="label-alt">COMM</span></span>
         <!-- Main Display: current segment with word highlighting -->
         <div id="display-wrapper">
             <div class="panel-bezel">
                 <div id="main-display" class="recessed-screen">
                     <canvas id="data-stream-canvas"></canvas>
                     <div id="main-display-text">
-                        <span class="display-placeholder aurebesh" data-en="[ AWAITING SIGNAL ]">[ AWAITING SIGNAL ]</span>
+                        <span class="display-placeholder display-font" data-en="[ AWAITING SIGNAL ]">[ AWAITING SIGNAL ]</span>
                     </div>
                     <div id="scanline-overlay"></div>
                 </div>
@@ -134,7 +134,7 @@
             <!-- Left Column: Transport + Skip -->
             <div class="panel-bezel panel-bezel--left">
                 <div id="left-controls">
-                    <span class="panel-label" style="justify-content:center;">SEC-4 // TRANSPORT <span class="label-aurebesh">TRANSPORT</span></span>
+                    <span class="panel-label" style="justify-content:center;">SEC-4 // TRANSPORT <span class="label-alt">TRANSPORT</span></span>
                     <div id="transport-buttons">
                         <button class="transport-btn" id="btn-rewind" title="Rewind">
                             <img src="/assets/rewind_button_off.png" class="btn-off" alt="" draggable="false">
@@ -168,7 +168,7 @@
                         <button class="skip-btn" data-skip="30">+30</button>
                     </div>
 
-                    <span class="panel-label" style="justify-content:center; padding-top:8px; padding-bottom:8px;">AUDIO MODULATION <span class="label-aurebesh">AUDIO</span></span>
+                    <span class="panel-label" style="justify-content:center; padding-top:8px; padding-bottom:8px;">AUDIO MODULATION <span class="label-alt">AUDIO</span></span>
                     <!-- Knobs -->
                     <div id="knobs-area">
                         <div class="knob-group">
@@ -198,7 +198,7 @@
 
             <!-- Right Column: Transcript + Utilities -->
             <div id="right-controls">
-                <span class="panel-label">SEC-9 // TRANSCRIPTION <span class="label-aurebesh">SIGNAL</span></span>
+                <span class="panel-label">SEC-9 // TRANSCRIPTION <span class="label-alt">SIGNAL</span></span>
                 <div class="panel-bezel panel-bezel--transcript">
                     <div id="transcript-panel" class="recessed-screen">
                         <div id="transcript-content">

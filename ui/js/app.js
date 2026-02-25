@@ -1,5 +1,5 @@
 /**
- * Main application controller for the Foobskin audiobook player.
+ * Main application controller for the HoloVox audiobook player.
  * Bridges the pywebview Python API with the HTML frontend.
  */
 
@@ -77,7 +77,7 @@ const App = (() => {
         stopDataStream();
 
         document.getElementById('title-text').textContent =
-            fileInfo.filename || 'AudioBook Player';
+            fileInfo.filename || 'HoloVox';
 
         Transcription.reset();
 
@@ -473,7 +473,7 @@ const App = (() => {
         el.textContent = text + text;
     }
 
-    // ── Idle Aurebesh data stream ────────────────────────────────
+    // ── Idle display-font data stream ────────────────────────────────
 
     let dataStreamInterval = null;
 
@@ -481,7 +481,7 @@ const App = (() => {
         const canvas = document.getElementById('data-stream-canvas');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
-        const aurebeshChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const displayChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         const columns = [];
 
         function resize() {
@@ -500,11 +500,11 @@ const App = (() => {
         dataStreamInterval = setInterval(() => {
             ctx.fillStyle = 'rgba(6, 8, 9, 0.15)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.font = '12px Aurebesh, monospace';
+            ctx.font = '12px DisplayFont, monospace';
             ctx.fillStyle = 'rgba(0, 221, 68, 0.35)';
 
             for (let i = 0; i < columns.length; i++) {
-                const char = aurebeshChars[Math.floor(Math.random() * aurebeshChars.length)];
+                const char = displayChars[Math.floor(Math.random() * displayChars.length)];
                 ctx.fillText(char, i * 14, columns[i]);
                 if (columns[i] > canvas.height && Math.random() > 0.97) {
                     columns[i] = 0;

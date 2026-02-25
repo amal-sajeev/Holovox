@@ -15,7 +15,7 @@ from transcriber import TranscriptionEngine
 APP_DIR = Path(__file__).parent
 UI_DIR = APP_DIR / 'ui'
 ASSETS_DIR = APP_DIR / 'Assets'
-CONFIG_DIR = Path.home() / '.foobskin'
+CONFIG_DIR = Path.home() / '.holovox'
 CACHE_DIR = CONFIG_DIR / 'cache'
 SETTINGS_FILE = CONFIG_DIR / 'settings.json'
 BOOKMARKS_FILE = CONFIG_DIR / 'bookmarks.json'
@@ -510,7 +510,7 @@ def main():
     api = API(port)
 
     window = webview.create_window(
-        'AudioBook Player',
+        'HoloVox',
         url=f'http://localhost:{port}/ui/index.html',
         js_api=api,
         width=900,
