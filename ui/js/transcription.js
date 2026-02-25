@@ -11,6 +11,8 @@ const Transcription = (() => {
     let isComplete = false;
     let lastActiveIndex = -1;
     let karaokeReady = false;
+    let pendingPlayback = null;
+    let lastProgress = null;
 
     const MIN_BUFFER_SECS = 15;
     const SAFE_SPEED = 1.2;
@@ -21,6 +23,8 @@ const Transcription = (() => {
         isComplete = false;
         lastActiveIndex = -1;
         karaokeReady = false;
+        pendingPlayback = null;
+        lastProgress = null;
         stopPolling();
 
         const container = document.getElementById('transcript-content');
@@ -43,9 +47,31 @@ const Transcription = (() => {
         }
     }
 
+    function isPlaybackReady() {
+        return isComplete || karaokeReady;
+    }
+
+    function requestPlayWhenReady(callback, seekPosition) {
+        if (isPlaybackReady()) {
+            callback();
+        } else {
+            pendingPlayback = { callback, seekPosition };
+        }
+    }
+
+    function invokePendingPlayback() {
+        if (pendingPlayback) {
+            const { callback } = pendingPlayback;
+            pendingPlayback = null;
+            callback();
+        }
+    }
+
     function poll(pyApi) {
         pyApi.get_transcription_progress().then(progress => {
             if (!progress) return;
+
+            lastProgress = progress;
 
             if (progress.status === 'error') {
                 showError(progress.error || 'Transcription failed');
@@ -64,6 +90,7 @@ const Transcription = (() => {
                 stopPolling();
                 updateStatusIndicator('complete');
                 updateProgressDisplay(null);
+                invokePendingPlayback();
             } else if (progress.status === 'downloading') {
                 updateStatusIndicator('loading');
                 updateProgressDisplay('downloading', progress.download_percent, progress.model_name);
@@ -81,6 +108,7 @@ const Transcription = (() => {
 
                 if (karaokeReady) {
                     updateProgressDisplay(null);
+                    invokePendingPlayback();
                 } else {
                     updateProgressDisplay('transcribing', progress.percent, null, progress.duration, progress.rate);
                     if (segments.length === 0) {
@@ -136,9 +164,17 @@ const Transcription = (() => {
         if (!mainDisplay) return;
 
         if (segIndex < 0 || segIndex >= segments.length) {
-            if (lastActiveIndex !== -1) {
-                mainDisplay.innerHTML = '<span class="display-placeholder">[ AWAITING SIGNAL ]</span>';
-                lastActiveIndex = -1;
+            lastActiveIndex = -1;
+            if (lastProgress && (lastProgress.status === 'transcribing' || lastProgress.status === 'loading' || lastProgress.status === 'downloading')) {
+                if (lastProgress.status === 'downloading') {
+                    updateProgressDisplay('downloading', lastProgress.download_percent, lastProgress.model_name);
+                } else if (lastProgress.status === 'loading') {
+                    updateProgressDisplay('loading', 0);
+                } else {
+                    updateProgressDisplay('transcribing', lastProgress.percent, null, lastProgress.duration, lastProgress.rate);
+                }
+            } else {
+                mainDisplay.innerHTML = '<span class="display-placeholder aurebesh" data-en="[ AWAITING SIGNAL ]">[ AWAITING SIGNAL ]</span>';
             }
             return;
         }
@@ -328,5 +364,5 @@ const Transcription = (() => {
         return div.innerHTML;
     }
 
-    return { reset, startPolling, stopPolling, sync };
+    return { reset, startPolling, stopPolling, sync, isPlaybackReady, requestPlayWhenReady };
 })();

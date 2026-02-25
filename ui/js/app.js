@@ -100,19 +100,31 @@ const App = (() => {
         document.getElementById('btn-ff').addEventListener('click', fastForward);
     }
 
+    function playWhenReady(seekPosition) {
+        const doPlay = () => {
+            if (seekPosition != null) audio.currentTime = seekPosition;
+            audio.play();
+        };
+        if (Transcription.isPlaybackReady()) {
+            doPlay();
+        } else {
+            Transcription.requestPlayWhenReady(doPlay, seekPosition);
+        }
+    }
+
     function play() {
         if (!audio.src) {
             if (pyApi) {
                 pyApi.open_file().then(result => {
                     if (result) {
                         loadAudio(result);
-                        audio.play();
+                        playWhenReady();
                     }
                 });
             }
             return;
         }
-        audio.play();
+        playWhenReady();
     }
 
     function pause() {
@@ -510,6 +522,7 @@ const App = (() => {
     return {
         init,
         loadAudio,
+        playWhenReady,
         getAudio: () => audio,
         getApi: () => pyApi,
         getCurrentFile: () => currentFile,
@@ -550,9 +563,7 @@ const Bookmarks = (() => {
                         load(pyApi, filepath);
                     });
                 } else {
-                    const audio = App.getAudio();
-                    audio.currentTime = parseFloat(item.dataset.position);
-                    audio.play();
+                    App.playWhenReady(parseFloat(item.dataset.position));
                     App.closeAllOverlays();
                 }
             });

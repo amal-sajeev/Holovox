@@ -75,7 +75,7 @@ const Library = (() => {
                     if (result) {
                         App.loadAudio(result);
                         hide();
-                        App.getAudio().play();
+                        App.playWhenReady();
                     }
                 });
             });
@@ -108,7 +108,7 @@ const Library = (() => {
                         if (result) {
                             App.loadAudio(result);
                             hide();
-                            App.getAudio().play();
+                            App.playWhenReady();
                         }
                     });
                 });
@@ -134,7 +134,7 @@ const Library = (() => {
             if (result) {
                 App.loadAudio(result);
                 hide();
-                App.getAudio().play();
+                App.playWhenReady();
             }
         });
     }
