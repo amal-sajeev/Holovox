@@ -24,8 +24,8 @@
     --glow-cyan: 0 0 6px rgba(0, 212, 255, 0.6);
     --glow-amber: 0 0 6px rgba(255, 149, 0, 0.5);
     --font-tech: 'Share Tech Mono', 'Consolas', monospace;
-    --font-display: 'Orbitron', 'Consolas', monospace;
     --font-display: 'DisplayFont', sans-serif;
+    --font-chrono: 'Orbitron', 'Consolas', monospace;
 
     --frame-pad: 20px;
     --panel-border: 4px;
@@ -418,7 +418,7 @@ body {
 .led-small { width: 6px; height: 6px; }
 
 #time-display {
-    font-family: var(--font-display);
+    font-family: var(--font-chrono);
     font-size: 28px;
     font-weight: 900;
     color: var(--text-cyan);
@@ -429,7 +429,7 @@ body {
 .time-sep { color: #446; margin: 0 2px; }
 
 #time-remaining {
-    font-family: var(--font-display);
+    font-family: var(--font-chrono);
     font-size: 15px;
     color: var(--text-green);
     text-shadow: var(--glow-green);
@@ -1009,6 +1009,41 @@ body {
 
 .setting-select:focus { border-color: var(--cyan); box-shadow: var(--glow-cyan); }
 .setting-select option { background: #1a1a1a; color: var(--text-cyan); }
+
+.setting-row-block {
+    display: block;
+    margin-bottom: 14px;
+}
+.setting-row-block .setting-label { display: block; margin-bottom: 8px; }
+
+.cached-models-list {
+    font-size: 11px;
+    color: #aaa;
+    max-height: 140px;
+    overflow-y: auto;
+}
+.cached-model-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid #2a2a2a;
+}
+.cached-model-row:last-child { border-bottom: none; }
+.cached-model-name { flex: 1; color: var(--text-cyan); }
+.cached-model-size { color: #888; }
+.cached-model-delete {
+    font-family: var(--font-tech);
+    font-size: 10px;
+    padding: 2px 8px;
+    background: transparent;
+    color: var(--amber);
+    border: 1px solid #555;
+    border-radius: 3px;
+    cursor: pointer;
+}
+.cached-model-delete:hover { border-color: var(--amber); }
+.cached-models-empty { font-size: 11px; color: #666; margin: 8px 0; }
 
 /* ── Transcription status ─────────────────────────────────────── */
 

@@ -10,21 +10,50 @@ import hashlib
 from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import unquote, urlparse
-from transcriber import TranscriptionEngine
 
-APP_DIR = Path(__file__).parent
+
+def _get_frozen_paths():
+    """Return (app_dir, portable_dir) for serving UI/assets and for config/cache/models.
+    When frozen: app_dir has ui/ and Assets/ (from __file__ for onefile, or exe parent for standalone);
+    portable_dir is exe's parent for config/cache/hub. When not frozen: both are this file's parent."""
+    frozen = getattr(sys, 'frozen', False) or '__compiled__' in dir(sys)
+    if not frozen:
+        base = Path(__file__).resolve().parent
+        return base, base
+    portable_dir = Path(sys.executable).resolve().parent
+    # Onefile: __file__ points into temp extraction dir with ui/ and Assets/. Standalone: same folder as exe.
+    try:
+        app_dir = Path(__file__).resolve().parent
+    except NameError:
+        app_dir = portable_dir
+    # If app_dir does not contain 'ui', we're likely standalone and __file__ may point elsewhere; use exe parent.
+    if not (app_dir / 'ui').exists() and (portable_dir / 'ui').exists():
+        app_dir = portable_dir
+    return app_dir, portable_dir
+
+
+APP_DIR, _portable_dir = _get_frozen_paths()
 UI_DIR = APP_DIR / 'ui'
 ASSETS_DIR = APP_DIR / 'Assets'
-CONFIG_DIR = Path.home() / '.holovox'
+
+_frozen = getattr(sys, 'frozen', False) or '__compiled__' in dir(sys)
+if _frozen:
+    CONFIG_DIR = _portable_dir / 'HoloVox_data'
+    os.environ['HUGGINGFACE_HUB_CACHE'] = str(CONFIG_DIR / 'hub')
+else:
+    CONFIG_DIR = Path.home() / '.holovox'
+
 CACHE_DIR = CONFIG_DIR / 'cache'
 SETTINGS_FILE = CONFIG_DIR / 'settings.json'
 BOOKMARKS_FILE = CONFIG_DIR / 'bookmarks.json'
 
 try:
-    CONFIG_DIR.mkdir(exist_ok=True)
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     CACHE_DIR.mkdir(exist_ok=True)
 except OSError:
-    pass  # read-only home or permission error; persistence will fail later
+    pass  # read-only or permission error; persistence will fail later
+
+from transcriber import TranscriptionEngine
 
 KNOWN_LANGUAGES = {'auto', 'en', 'es', 'fr', 'de', 'it', 'pt', 'ja', 'ko', 'zh', 'ru', 'ar', 'hi'}
 
@@ -274,14 +303,38 @@ class API:
         result = []
         for m in raw:
             info = MODEL_INFO.get(m['name'], {})
-            result.append({
+            item = {
                 'name': m['name'],
+                'repo_id': m['repo_id'],
                 'cached': m['cached'],
                 'desc': info.get('desc', ''),
                 'size': info.get('size', ''),
                 'configured': m['name'] == configured,
-            })
+            }
+            if m.get('size_on_disk_str'):
+                item['size_on_disk_str'] = m['size_on_disk_str']
+            result.append(item)
         return result
+
+    def get_cached_models_detail(self):
+        return self._transcriber.get_cached_models_detail()
+
+    def delete_cached_model(self, repo_id):
+        raw = self._transcriber.get_available_models()
+        name_to_repo = {m['name']: m['repo_id'] for m in raw}
+        current_name = self._settings.get('whisper_model', 'base')
+        current_was_deleted = name_to_repo.get(current_name) == repo_id
+
+        ok = self._transcriber.delete_cached_model(repo_id)
+        if not ok:
+            return False
+        if current_was_deleted:
+            detail = self._transcriber.get_cached_models_detail()
+            new_name = detail[0]['name'] if detail else 'base'
+            self._settings['whisper_model'] = new_name
+            self._save_settings()
+            self._transcriber.set_model(new_name)
+        return True
 
     def download_model(self, name):
         if name not in MODEL_INFO:
@@ -467,7 +520,7 @@ class API:
             flags = SWP_NOZORDER | SWP_NOACTIVATE
 
             def find_main_window():
-                hwnd = ctypes.windll.user32.FindWindowW(None, 'AudioBook Player')
+                hwnd = ctypes.windll.user32.FindWindowW(None, 'HoloVox')
                 if hwnd:
                     return hwnd
                 # Fallback: enumerate top-level windows and match by title
@@ -475,7 +528,7 @@ class API:
 
                 def enum_cb(h, _):
                     buf = ctypes.create_unicode_buffer(256)
-                    if ctypes.windll.user32.GetWindowTextW(h, buf, 256) and 'AudioBook Player' in buf.value:
+                    if ctypes.windll.user32.GetWindowTextW(h, buf, 256) and 'HoloVox' in buf.value:
                         result.value = h
                         return False  # stop
                     return True
