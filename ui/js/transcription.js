@@ -17,6 +17,17 @@ const Transcription = (() => {
     const MIN_BUFFER_SECS = 15;
     const SAFE_SPEED = 1.2;
 
+    function updateProgressBarBuffer(duration, transcribedUpTo) {
+        const el = document.getElementById('progress-buffer');
+        if (!el) return;
+        if (!duration || duration <= 0) {
+            el.style.width = '0%';
+            return;
+        }
+        const pct = Math.min(100, (transcribedUpTo / duration) * 100);
+        el.style.width = pct + '%';
+    }
+
     function reset() {
         segments = [];
         lastSegmentCount = 0;
@@ -26,6 +37,7 @@ const Transcription = (() => {
         pendingPlayback = null;
         lastProgress = null;
         stopPolling();
+        updateProgressBarBuffer(0, 0);
 
         const container = document.getElementById('transcript-content');
         container.innerHTML = '<p class="placeholder-text">Transcribing audio<span class="loading-dots"></span></p>';
@@ -90,6 +102,9 @@ const Transcription = (() => {
                 stopPolling();
                 updateStatusIndicator('complete');
                 updateProgressDisplay(null);
+                var dur = progress.duration || (progress.segments && progress.segments.length > 0
+                    ? progress.segments[progress.segments.length - 1].end : 0);
+                updateProgressBarBuffer(dur, dur);
                 invokePendingPlayback();
             } else if (progress.status === 'downloading') {
                 updateStatusIndicator('loading');
@@ -101,6 +116,7 @@ const Transcription = (() => {
                 updateSidebarStatus('Loading speech model...');
             } else if (progress.status === 'transcribing') {
                 updateStatusIndicator('transcribing', progress.percent);
+                updateProgressBarBuffer(progress.duration, progress.transcribed_up_to || 0);
 
                 if (!karaokeReady) {
                     karaokeReady = checkKaraokeReady(progress);
