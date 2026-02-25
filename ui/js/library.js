@@ -48,32 +48,52 @@ const Library = (() => {
         const container = document.getElementById('library-items');
         container.innerHTML = '<div style="padding:10px;color:#335;font-style:italic;">Scanning...</div>';
 
-        pyApi.scan_library().then(files => {
-            if (!files || files.length === 0) {
+        pyApi.scan_library().then(data => {
+            if (!data || (Array.isArray(data) && data.length === 0)) {
                 container.innerHTML = '<div style="padding:10px;color:#335;font-style:italic;">No audiobooks found. Set a library folder to get started.</div>';
                 return;
             }
-            renderFileList(container, files);
+            const loose = (data && data.loose) ? data.loose : [];
+            const books = (data && data.books) ? data.books : [];
+            if (loose.length === 0 && books.length === 0) {
+                container.innerHTML = '<div style="padding:10px;color:#335;font-style:italic;">No audiobooks found. Set a library folder to get started.</div>';
+                return;
+            }
+            renderLibrary(container, loose, books);
         }).catch(() => {
             container.innerHTML = '<div style="padding:10px;color:#c44;">Could not scan library.</div>';
         });
     }
 
-    function renderFileList(container, files) {
-        container.innerHTML = files.map(f => {
+    function renderLibrary(container, loose, books) {
+        const parts = [];
+
+        loose.forEach(f => {
             const badge = f.has_transcript ? '<span class="item-badge">[T]</span>' : '';
-            const folder = f.folder !== '.' ? `<span class="item-folder">${f.folder}</span>` : '';
-            return `<div class="library-item" data-path="${escapeAttr(f.path)}">
+            parts.push(`<div class="library-item" data-path="${escapeAttr(f.path)}" data-type="file">
                 <span class="item-name">${escapeHtml(f.name)}</span>
-                ${folder}
                 ${badge}
-            </div>`;
-        }).join('');
+            </div>`);
+        });
+
+        books.forEach(book => {
+            const firstPath = book.files && book.files[0] ? book.files[0].path : '';
+            const count = book.files ? book.files.length : 0;
+            const trackLabel = count > 0 ? `<span class="item-folder">${count} track${count !== 1 ? 's' : ''}</span>` : '';
+            parts.push(`<div class="library-item library-item-book" data-type="book" data-path="${escapeAttr(book.path)}" data-first-path="${escapeAttr(firstPath)}">
+                <span class="item-name">${escapeHtml(book.name)}</span>
+                ${trackLabel}
+            </div>`);
+        });
+
+        container.innerHTML = parts.join('');
 
         container.querySelectorAll('.library-item').forEach(item => {
             item.addEventListener('click', () => {
-                const path = item.dataset.path;
-                pyApi.load_file(path).then(result => {
+                const type = item.dataset.type || 'file';
+                const pathToLoad = type === 'book' ? item.dataset.firstPath : item.dataset.path;
+                if (!pathToLoad) return;
+                pyApi.load_file(pathToLoad).then(result => {
                     if (result) {
                         App.loadAudio(result);
                         hide();
@@ -154,12 +174,19 @@ const Library = (() => {
 
     function setFolder() {
         if (!pyApi) return;
+        const pathEl = document.getElementById('library-folder-path');
         pyApi.set_library_folder().then(path => {
             if (path) {
                 loadFolderPath();
                 loadLibrary();
+            } else {
+                if (pathEl) pathEl.textContent = '(cancelled)';
             }
-        }).catch(() => {});
+        }).catch(() => {
+            if (pathEl) pathEl.textContent = '(error)';
+            const container = document.getElementById('library-items');
+            if (container) container.innerHTML = '<div style="padding:10px;color:#c44;">Could not set folder.</div>';
+        });
     }
 
     // ── Helpers ──────────────────────────────────────────────────

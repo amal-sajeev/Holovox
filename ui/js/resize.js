@@ -1,6 +1,6 @@
 (function () {
     const EDGE = 6;
-    const MIN_W = 700;
+    const MIN_W = 950;
     const MIN_H = 500;
 
     let active = false;
@@ -8,6 +8,23 @@
     let sx, sy, geom;
     let pending = null;
     let inFlight = false;
+    let api = null;
+
+    function getApi() {
+        if (window.pywebview && window.pywebview.api) return window.pywebview.api;
+        return api;
+    }
+
+    function initResizeApi() {
+        if (window.pywebview && window.pywebview.api) {
+            api = window.pywebview.api;
+            return;
+        }
+        window.addEventListener('pywebviewready', () => {
+            api = window.pywebview && window.pywebview.api ? window.pywebview.api : null;
+        }, { once: true });
+    }
+    initResizeApi();
 
     function detect(cx, cy) {
         let e = '';
@@ -24,17 +41,41 @@
     };
 
     function flush() {
-        if (!pending || inFlight || !window.pywebview?.api) return;
+        if (!pending || inFlight || !getApi()) return;
         inFlight = true;
         const { x, y, w, h } = pending;
         pending = null;
-        pywebview.api.set_window_rect(x, y, w, h)
+        getApi().set_window_rect(x, y, w, h)
             .catch(() => {})
             .finally(() => {
                 inFlight = false;
                 if (pending) requestAnimationFrame(flush);
             });
     }
+
+    document.addEventListener('mousedown', async (e) => {
+        if (!getApi()) return;
+        const target = e.target;
+        const handle = target && target.closest && target.closest('.resize-edge');
+        const ed = handle && handle.dataset && handle.dataset.edge ? handle.dataset.edge : detect(e.clientX, e.clientY);
+        if (!ed) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+        active = true;
+        edges = ed;
+        sx = e.screenX;
+        sy = e.screenY;
+        document.documentElement.style.cursor = CURSORS[ed] || '';
+
+        try {
+            geom = await getApi().get_window_geometry();
+        } catch (_) {
+            active = false;
+            edges = '';
+            document.documentElement.style.cursor = '';
+        }
+    }, true);
 
     document.addEventListener('mousemove', (e) => {
         if (active) {
@@ -68,34 +109,13 @@
         document.documentElement.style.cursor = CURSORS[ed] || '';
     });
 
-    document.addEventListener('mousedown', async (e) => {
-        if (!window.pywebview?.api) return;
-        const ed = detect(e.clientX, e.clientY);
-        if (!ed) return;
-
-        e.preventDefault();
-        active = true;
-        edges = ed;
-        sx = e.screenX;
-        sy = e.screenY;
-        document.documentElement.style.cursor = CURSORS[ed];
-
-        try {
-            geom = await pywebview.api.get_window_geometry();
-        } catch (_) {
-            active = false;
-            edges = '';
-            document.documentElement.style.cursor = '';
-        }
-    });
-
     document.addEventListener('mouseup', () => {
         if (!active) return;
         active = false;
         edges = '';
         document.documentElement.style.cursor = '';
-        if (pending && window.pywebview?.api) {
-            pywebview.api.set_window_rect(pending.x, pending.y, pending.w, pending.h).catch(() => {});
+        if (pending && getApi()) {
+            getApi().set_window_rect(pending.x, pending.y, pending.w, pending.h).catch(() => {});
             pending = null;
         }
     });

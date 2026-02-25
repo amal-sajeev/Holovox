@@ -561,6 +561,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 5px;
+    min-width: 320px;
 }
 
 /* ── Transport Buttons ────────────────────────────────────────── */
@@ -971,6 +972,7 @@ body {
 .library-item .item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .library-item .item-folder { font-size: 10px; color: #444; margin-left: 8px; text-shadow: none; }
 .library-item .item-badge { font-size: 8px; color: var(--green); margin-left: 8px; text-shadow: var(--glow-green); }
+.library-item-book { border-left: 2px solid rgba(0, 212, 255, 0.35); padding-left: 10px; }
 
 .bookmark-item .bm-time { font-family: var(--font-display); font-size: 11px; color: var(--text-cyan); margin-right: 10px; min-width: 55px; }
 .bookmark-item .bm-label { flex: 1; }
@@ -1071,6 +1073,28 @@ body {
 }
 
 .hidden { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
+
+/* Resize handles: fixed edge strips so frameless window can be resized by dragging edges */
+#resize-handles {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    pointer-events: none;
+}
+#resize-handles .resize-edge {
+    position: absolute;
+    pointer-events: auto;
+    z-index: 1;
+}
+#resize-handles .resize-n { top: 0; left: 6px; right: 6px; height: 6px; cursor: n-resize; }
+#resize-handles .resize-s { bottom: 0; left: 6px; right: 6px; height: 6px; cursor: s-resize; }
+#resize-handles .resize-w { top: 6px; left: 0; width: 6px; bottom: 6px; cursor: w-resize; }
+#resize-handles .resize-e { top: 6px; right: 0; width: 6px; bottom: 6px; cursor: e-resize; }
+#resize-handles .resize-nw { top: 0; left: 0; width: 6px; height: 6px; cursor: nw-resize; }
+#resize-handles .resize-ne { top: 0; right: 0; width: 6px; height: 6px; cursor: ne-resize; }
+#resize-handles .resize-sw { bottom: 0; left: 0; width: 6px; height: 6px; cursor: sw-resize; }
+#resize-handles .resize-se { bottom: 0; right: 0; width: 6px; height: 6px; cursor: se-resize; }
+
 
 /* ═══════════════════════════════════════════════════════════════
    BOOT SCREEN

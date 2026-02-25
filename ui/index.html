@@ -216,6 +216,7 @@
                     </div>
                     <button class="util-btn" id="btn-bookmarks">BOOKMARKS</button>
                     <button class="util-btn" id="btn-settings">SETTINGS</button>
+                    <button class="util-btn" id="btn-retranscribe">RETRANSCRIBE</button>
                     <div class="led-cluster">
                         <span class="led led-small led-on"></span>
                         <span class="led led-small led-on"></span>
@@ -322,9 +323,6 @@
                         <option value="hi">Hindi</option>
                     </select>
                 </div>
-                <div class="setting-row" style="justify-content:center; padding-top:6px;">
-                    <button class="util-btn" id="btn-retranscribe">RETRANSCRIBE</button>
-                </div>
                 <div class="scanline-effect"></div>
             </div>
         </div>
@@ -346,6 +344,18 @@
 
     <!-- Hidden audio element -->
     <audio id="audio-element" preload="auto" crossorigin="anonymous"></audio>
+
+    <!-- Resize handles: invisible strips at window edges (no drag region, on top) -->
+    <div id="resize-handles" aria-hidden="true">
+        <div class="resize-edge resize-n" data-edge="n"></div>
+        <div class="resize-edge resize-s" data-edge="s"></div>
+        <div class="resize-edge resize-w" data-edge="w"></div>
+        <div class="resize-edge resize-e" data-edge="e"></div>
+        <div class="resize-edge resize-nw" data-edge="nw"></div>
+        <div class="resize-edge resize-ne" data-edge="ne"></div>
+        <div class="resize-edge resize-sw" data-edge="sw"></div>
+        <div class="resize-edge resize-se" data-edge="se"></div>
+    </div>
 
     <script src="/ui/js/resize.js"></script>
     <script src="/ui/js/sounds.js"></script>

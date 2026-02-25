@@ -30,6 +30,9 @@ KNOWN_LANGUAGES = {'auto', 'en', 'es', 'fr', 'de', 'it', 'pt', 'ja', 'ko', 'zh',
 
 SETTINGS_KEYS = {'library_folder', 'recent_files', 'whisper_model', 'language', 'mute_sounds'}
 
+# Extensions for library scan (must match open-file dialog: mp3, m4a, m4b, flac, wav, ogg)
+AUDIO_EXTENSIONS = {'.mp3', '.m4a', '.m4b', '.flac', '.wav', '.ogg'}
+
 MODEL_INFO = {
     'tiny':             {'desc': 'Fastest, least accurate',     'size': '~75 MB'},
     'tiny.en':          {'desc': 'Fastest, English only',       'size': '~75 MB'},
@@ -297,29 +300,65 @@ class API:
     def scan_library(self):
         folder = self._settings.get('library_folder', '')
         if not folder or not os.path.isdir(folder):
-            return []
+            return {'loose': [], 'books': []}
 
-        files = []
-        for root, _dirs, filenames in os.walk(folder):
-            for fn in filenames:
-                if Path(fn).suffix.lower() in AUDIO_EXTENSIONS:
-                    full_path = os.path.join(root, fn)
-                    files.append({
+        folder_path = Path(folder)
+        loose = []
+        books = []
+
+        # Loose: audio files directly in the library root
+        try:
+            for fn in os.listdir(folder):
+                p = folder_path / fn
+                if p.is_file() and p.suffix.lower() in AUDIO_EXTENSIONS:
+                    full_path = os.path.normpath(p)
+                    loose.append({
                         'path': full_path,
                         'name': fn,
-                        'folder': os.path.relpath(root, folder),
                         'has_transcript': self._transcriber.has_cached(full_path),
                     })
-        files.sort(key=lambda x: x['name'].lower())
-        return files
+        except OSError:
+            pass
+        loose.sort(key=lambda x: x['name'].lower())
+
+        # Books: immediate subdirs that contain at least one audio file
+        try:
+            for entry in os.scandir(folder):
+                if not entry.is_dir():
+                    continue
+                sub_path = Path(entry.path)
+                files_in_dir = []
+                for root, _dirs, filenames in os.walk(entry.path):
+                    for fn in filenames:
+                        if Path(fn).suffix.lower() in AUDIO_EXTENSIONS:
+                            full_path = os.path.normpath(os.path.join(root, fn))
+                            files_in_dir.append({
+                                'path': full_path,
+                                'name': fn,
+                                'has_transcript': self._transcriber.has_cached(full_path),
+                            })
+                if files_in_dir:
+                    files_in_dir.sort(key=lambda x: (x['path'].lower(), x['name'].lower()))
+                    books.append({
+                        'path': os.path.normpath(entry.path),
+                        'name': entry.name,
+                        'files': files_in_dir,
+                    })
+        except OSError:
+            pass
+        books.sort(key=lambda x: x['name'].lower())
+
+        return {'loose': loose, 'books': books}
 
     def set_library_folder(self):
+        if not webview.windows:
+            return None
         result = webview.windows[0].create_file_dialog(webview.FileDialog.FOLDER)
-        if result and len(result) > 0:
-            self._settings['library_folder'] = result[0]
-            self._save_settings()
-            return result[0]
-        return None
+        if result is None or len(result) == 0:
+            return None
+        self._settings['library_folder'] = result[0]
+        self._save_settings()
+        return result[0]
 
     def get_library_folder(self):
         return self._settings.get('library_folder', '')
@@ -409,18 +448,46 @@ class API:
         return {'x': w.x, 'y': w.y, 'w': w.width, 'h': w.height}
 
     def set_window_rect(self, x, y, w, h):
-        if sys.platform == 'win32':
-            import ctypes
-            hwnd = ctypes.windll.user32.FindWindowW(None, 'AudioBook Player')
-            if hwnd:
-                ctypes.windll.user32.SetWindowPos(
-                    hwnd, 0, int(x), int(y), int(w), int(h), 0x0004)
-                return
         if not webview.windows:
             return
         win = webview.windows[0]
-        win.resize(int(w), int(h))
-        win.move(int(x), int(y))
+        x, y, w, h = int(x), int(y), int(w), int(h)
+        # Use pywebview API first (works when backend respects resizable=True on frameless)
+        try:
+            win.resize(w, h)
+            win.move(x, y)
+        except Exception:
+            pass
+        # On Windows, also apply via Win API so resize takes effect on frameless windows
+        if sys.platform == 'win32':
+            import ctypes
+            HWND_TOP = 0
+            SWP_NOZORDER = 0x0004
+            SWP_NOACTIVATE = 0x0010
+            flags = SWP_NOZORDER | SWP_NOACTIVATE
+
+            def find_main_window():
+                hwnd = ctypes.windll.user32.FindWindowW(None, 'AudioBook Player')
+                if hwnd:
+                    return hwnd
+                # Fallback: enumerate top-level windows and match by title
+                result = ctypes.c_void_p()
+
+                def enum_cb(h, _):
+                    buf = ctypes.create_unicode_buffer(256)
+                    if ctypes.windll.user32.GetWindowTextW(h, buf, 256) and 'AudioBook Player' in buf.value:
+                        result.value = h
+                        return False  # stop
+                    return True
+
+                WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+                ctypes.windll.user32.EnumWindows(WNDENUMPROC(enum_cb), 0)
+                return result.value if result.value else None
+
+            hwnd = find_main_window()
+            if hwnd:
+                ctypes.windll.user32.SetWindowPos(
+                    hwnd, HWND_TOP, x, y, w, h, flags)
 
 
 def find_free_port():
@@ -451,7 +518,7 @@ def main():
         easy_drag=False,
         frameless=True,
         resizable=True,
-        min_size=(700, 500),
+        min_size=(950, 500),
         background_color='#0a0c0e',
     )
 
