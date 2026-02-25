@@ -19,13 +19,18 @@ const Knobs = (() => {
         const el = document.getElementById(elementId);
         if (!el) return;
 
-        const min = parseFloat(el.dataset.min);
-        const max = parseFloat(el.dataset.max);
+        let min = parseFloat(el.dataset.min);
+        let max = parseFloat(el.dataset.max);
         const defaultVal = parseFloat(el.dataset.default || el.dataset.value);
         let value = parseFloat(el.dataset.value);
+        if (Number.isNaN(min)) min = 0;
+        if (Number.isNaN(max)) max = 1;
+        if (min >= max) max = min + 1;
+        if (Number.isNaN(value) || value < min || value > max) value = min;
+        const safeDefault = Number.isNaN(defaultVal) || defaultVal < min || defaultVal > max ? value : defaultVal;
 
         const img = el.querySelector('.knob-img');
-        const state = { el, img, min, max, value, defaultVal, onChange };
+        const state = { el, img, min, max, value, defaultVal: safeDefault, onChange };
         knobs[elementId] = state;
 
         updateKnobVisual(state);
@@ -81,7 +86,8 @@ const Knobs = (() => {
     }
 
     function updateKnobVisual(state) {
-        const pct = (state.value - state.min) / (state.max - state.min);
+        const range = state.max - state.min;
+        const pct = range <= 0 ? 0 : (state.value - state.min) / range;
         const angle = MIN_ANGLE + pct * ARC_DEGREES;
         state.img.style.transform = `rotate(${angle}deg)`;
     }

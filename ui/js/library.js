@@ -54,6 +54,8 @@ const Library = (() => {
                 return;
             }
             renderFileList(container, files);
+        }).catch(() => {
+            container.innerHTML = '<div style="padding:10px;color:#c44;">Could not scan library.</div>';
         });
     }
 
@@ -76,7 +78,11 @@ const Library = (() => {
                         App.loadAudio(result);
                         hide();
                         App.playWhenReady();
+                    } else {
+                        container.innerHTML = '<div style="padding:10px;color:#c44;">File not found. It may have been moved or deleted.</div>';
                     }
+                }).catch(() => {
+                    container.innerHTML = '<div style="padding:10px;color:#c44;">Could not open file.</div>';
                 });
             });
         });
@@ -109,10 +115,17 @@ const Library = (() => {
                             App.loadAudio(result);
                             hide();
                             App.playWhenReady();
+                        } else {
+                            container.innerHTML = '<div style="padding:8px;color:#c44;">File not found.</div>';
                         }
+                    }).catch(() => {
+                        container.innerHTML = '<div style="padding:8px;color:#c44;">Could not open file.</div>';
                     });
                 });
             });
+        }).catch(() => {
+            const container = document.getElementById('recent-items');
+            container.innerHTML = '<div style="padding:8px;color:#c44;">Could not load recent files.</div>';
         });
     }
 
@@ -123,7 +136,7 @@ const Library = (() => {
         pyApi.get_library_folder().then(path => {
             const el = document.getElementById('library-folder-path');
             el.textContent = path || '(no folder set)';
-        });
+        }).catch(() => {});
     }
 
     // ── Actions ──────────────────────────────────────────────────
@@ -136,7 +149,7 @@ const Library = (() => {
                 hide();
                 App.playWhenReady();
             }
-        });
+        }).catch(() => {});
     }
 
     function setFolder() {
@@ -146,7 +159,7 @@ const Library = (() => {
                 loadFolderPath();
                 loadLibrary();
             }
-        });
+        }).catch(() => {});
     }
 
     // ── Helpers ──────────────────────────────────────────────────

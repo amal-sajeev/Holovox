@@ -20,10 +20,15 @@ CACHE_DIR = CONFIG_DIR / 'cache'
 SETTINGS_FILE = CONFIG_DIR / 'settings.json'
 BOOKMARKS_FILE = CONFIG_DIR / 'bookmarks.json'
 
-CONFIG_DIR.mkdir(exist_ok=True)
-CACHE_DIR.mkdir(exist_ok=True)
+try:
+    CONFIG_DIR.mkdir(exist_ok=True)
+    CACHE_DIR.mkdir(exist_ok=True)
+except OSError:
+    pass  # read-only home or permission error; persistence will fail later
 
-AUDIO_EXTENSIONS = {'.mp3', '.m4a', '.m4b', '.flac', '.wav', '.ogg'}
+KNOWN_LANGUAGES = {'auto', 'en', 'es', 'fr', 'de', 'it', 'pt', 'ja', 'ko', 'zh', 'ru', 'ar', 'hi'}
+
+SETTINGS_KEYS = {'library_folder', 'recent_files', 'whisper_model', 'language', 'mute_sounds'}
 
 MODEL_INFO = {
     'tiny':             {'desc': 'Fastest, least accurate',     'size': '~75 MB'},
@@ -51,7 +56,7 @@ MODEL_INFO = {
 class AudioHandler(BaseHTTPRequestHandler):
     """HTTP handler serving UI files, assets, and audio with range-request support."""
 
-    allowed_audio_paths = set()
+    allowed_audio_paths = []  # list of paths, capped to last 50
 
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -171,8 +176,17 @@ class API:
 
     def _load_settings(self):
         if SETTINGS_FILE.exists():
-            with open(SETTINGS_FILE, encoding='utf-8') as f:
-                self._settings = json.load(f)
+            try:
+                with open(SETTINGS_FILE, encoding='utf-8') as f:
+                    self._settings = json.load(f)
+            except (json.JSONDecodeError, OSError):
+                self._settings = {
+                    'library_folder': '',
+                    'recent_files': [],
+                    'whisper_model': 'base',
+                    'language': 'auto',
+                }
+                self._save_settings()
         else:
             self._settings = {
                 'library_folder': '',
@@ -189,6 +203,8 @@ class API:
     # ── File / audio operations ───────────────────────────────────────
 
     def open_file(self):
+        if not webview.windows:
+            return None
         result = webview.windows[0].create_file_dialog(
             webview.FileDialog.OPEN,
             file_types=(
@@ -201,12 +217,16 @@ class API:
         return None
 
     def load_file(self, filepath):
+        if not filepath or '..' in filepath:
+            return None
         if os.path.isfile(filepath):
             return self._prepare_audio(filepath)
         return None
 
     def _prepare_audio(self, filepath):
-        AudioHandler.allowed_audio_paths.add(filepath)
+        AudioHandler.allowed_audio_paths.append(filepath)
+        if len(AudioHandler.allowed_audio_paths) > 50:
+            AudioHandler.allowed_audio_paths = AudioHandler.allowed_audio_paths[-50:]
         encoded = base64.urlsafe_b64encode(filepath.encode()).decode()
         url = f'http://localhost:{self._server_port}/audio/{encoded}'
         self._current_file = filepath
@@ -261,6 +281,8 @@ class API:
         return result
 
     def download_model(self, name):
+        if name not in MODEL_INFO:
+            return False
         self._transcriber.set_model(name)
         self._settings['whisper_model'] = name
         self._save_settings()
@@ -308,6 +330,14 @@ class API:
     # ── Bookmarks ─────────────────────────────────────────────────────
 
     def save_bookmark(self, filepath, position, label):
+        if not filepath or not isinstance(filepath, str) or not filepath.strip():
+            return None
+        try:
+            pos = float(position)
+        except (TypeError, ValueError):
+            return None
+        if not (pos >= 0 and pos != float('inf')):
+            return None
         bookmarks = self._load_bookmarks()
         bm_id = hashlib.md5(
             f'{filepath}:{position}:{label}'.encode()
@@ -315,8 +345,8 @@ class API:
         bookmarks.append({
             'id': bm_id,
             'filepath': filepath,
-            'position': position,
-            'label': label,
+            'position': pos,
+            'label': label or '',
         })
         self._save_bookmarks(bookmarks)
         return bm_id
@@ -331,8 +361,11 @@ class API:
 
     def _load_bookmarks(self):
         if BOOKMARKS_FILE.exists():
-            with open(BOOKMARKS_FILE, encoding='utf-8') as f:
-                return json.load(f)
+            try:
+                with open(BOOKMARKS_FILE, encoding='utf-8') as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, OSError):
+                pass
         return []
 
     def _save_bookmarks(self, bookmarks):
@@ -345,6 +378,12 @@ class API:
         return dict(self._settings)
 
     def update_settings(self, key, value):
+        if key not in SETTINGS_KEYS:
+            return False
+        if key == 'whisper_model' and value not in MODEL_INFO:
+            return False
+        if key == 'language' and value not in KNOWN_LANGUAGES:
+            return False
         self._settings[key] = value
         self._save_settings()
         if key == 'whisper_model':
@@ -356,12 +395,16 @@ class API:
     # ── Window control ────────────────────────────────────────────────
 
     def close_window(self):
-        webview.windows[0].destroy()
+        if webview.windows:
+            webview.windows[0].destroy()
 
     def minimize_window(self):
-        webview.windows[0].minimize()
+        if webview.windows:
+            webview.windows[0].minimize()
 
     def get_window_geometry(self):
+        if not webview.windows:
+            return {'x': 0, 'y': 0, 'w': 900, 'h': 720}
         w = webview.windows[0]
         return {'x': w.x, 'y': w.y, 'w': w.width, 'h': w.height}
 
@@ -373,6 +416,8 @@ class API:
                 ctypes.windll.user32.SetWindowPos(
                     hwnd, 0, int(x), int(y), int(w), int(h), 0x0004)
                 return
+        if not webview.windows:
+            return
         win = webview.windows[0]
         win.resize(int(w), int(h))
         win.move(int(x), int(y))

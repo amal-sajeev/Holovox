@@ -87,6 +87,7 @@ const Transcription = (() => {
 
             if (progress.status === 'error') {
                 showError(progress.error || 'Transcription failed');
+                updateStatusIndicator('error');
                 stopPolling();
                 return;
             }
@@ -107,6 +108,7 @@ const Transcription = (() => {
                 updateProgressBarBuffer(dur, dur);
                 invokePendingPlayback();
             } else if (progress.status === 'downloading') {
+                // Reserved for future merged progress API (download progress currently from get_download_progress)
                 updateStatusIndicator('loading');
                 updateProgressDisplay('downloading', progress.download_percent, progress.model_name);
                 updateSidebarStatus('Downloading model: ' + (progress.model_name || '').toUpperCase() + ' — ' + Math.round(progress.download_percent || 0) + '%');
@@ -126,7 +128,7 @@ const Transcription = (() => {
                     updateProgressDisplay(null);
                     invokePendingPlayback();
                 } else {
-                    updateProgressDisplay('transcribing', progress.percent, null, progress.duration, progress.rate);
+                    updateProgressDisplay('transcribing', progress.percent, null, progress.duration, progress.rate, progress.transcribed_up_to);
                     if (segments.length === 0) {
                         if (progress.percent === 0 && progress.duration) {
                             var mins = Math.floor(progress.duration / 60);
@@ -138,7 +140,7 @@ const Transcription = (() => {
                     }
                 }
             }
-        });
+        }).catch(() => {});
     }
 
     // ── Sidebar transcript (small, scrolling) ────────────────────
@@ -183,11 +185,12 @@ const Transcription = (() => {
             lastActiveIndex = -1;
             if (lastProgress && (lastProgress.status === 'transcribing' || lastProgress.status === 'loading' || lastProgress.status === 'downloading')) {
                 if (lastProgress.status === 'downloading') {
+                    // Reserved for future merged progress API
                     updateProgressDisplay('downloading', lastProgress.download_percent, lastProgress.model_name);
                 } else if (lastProgress.status === 'loading') {
                     updateProgressDisplay('loading', 0);
                 } else {
-                    updateProgressDisplay('transcribing', lastProgress.percent, null, lastProgress.duration, lastProgress.rate);
+                    updateProgressDisplay('transcribing', lastProgress.percent, null, lastProgress.duration, lastProgress.rate, lastProgress.transcribed_up_to);
                 }
             } else {
                 mainDisplay.innerHTML = '<span class="display-placeholder aurebesh" data-en="[ AWAITING SIGNAL ]">[ AWAITING SIGNAL ]</span>';
@@ -285,7 +288,7 @@ const Transcription = (() => {
         }
     }
 
-    function updateProgressDisplay(status, percent, modelName, duration, rate) {
+    function updateProgressDisplay(status, percent, modelName, duration, rate, transcribedUpTo) {
         const mainDisplay = document.getElementById('main-display-text');
         if (!mainDisplay) return;
 
@@ -296,7 +299,10 @@ const Transcription = (() => {
             return;
         }
 
-        const pct = Math.round(percent || 0);
+        var pct = Math.round(percent || 0);
+        if (duration > 0 && typeof transcribedUpTo === 'number' && transcribedUpTo >= 0) {
+            pct = Math.min(100, Math.round((transcribedUpTo / duration) * 100));
+        }
 
         if (status === 'downloading') {
             const name = (modelName || 'whisper').toUpperCase();
@@ -363,6 +369,11 @@ const Transcription = (() => {
                 leds[0].className = 'led led-on';
                 leds[1].className = 'led led-on';
                 leds[2].className = 'led led-on';
+                break;
+            case 'error':
+                leds[0].className = 'led led-on';
+                leds[1].className = 'led led-red';
+                leds[2].className = 'led led-dim';
                 break;
         }
     }

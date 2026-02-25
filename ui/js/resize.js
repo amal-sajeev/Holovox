@@ -84,6 +84,8 @@
             geom = await pywebview.api.get_window_geometry();
         } catch (_) {
             active = false;
+            edges = '';
+            document.documentElement.style.cursor = '';
         }
     });
 

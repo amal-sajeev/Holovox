@@ -68,6 +68,16 @@ class TranscriptionEngine:
         return results
 
     def download_model(self, name):
+        from faster_whisper.utils import _MODELS
+        if name not in _MODELS:
+            with self._lock:
+                self._download_progress = {
+                    'status': 'error',
+                    'percent': 0,
+                    'model_name': name,
+                    'error': f'Unknown model: {name}',
+                }
+            return
         with self._lock:
             self._download_progress = {
                 'status': 'downloading',
@@ -139,9 +149,16 @@ class TranscriptionEngine:
             with self._lock:
                 self._progress['status'] = 'loading'
 
-            print(f'[Whisper] Loading model: {self._model_name}')
-            self._model = WhisperModel(self._model_name, device='cpu', compute_type='int8')
-            print('[Whisper] Model loaded successfully')
+            try:
+                print(f'[Whisper] Loading model: {self._model_name}')
+                self._model = WhisperModel(self._model_name, device='cpu', compute_type='int8')
+                print('[Whisper] Model loaded successfully')
+            except Exception as e:
+                print(f'[Whisper] Model load error: {e}')
+                with self._lock:
+                    self._progress['status'] = 'error'
+                    self._progress['error'] = f'Model failed to load: {e}'
+                raise
         return self._model
 
     def _cache_key(self, filepath):
@@ -309,14 +326,15 @@ class TranscriptionEngine:
                 elapsed = time.monotonic() - wall_start
                 rate = round(segment.end / elapsed, 2) if elapsed > 0.1 else 0
 
-                pct = min(99, int((segment.end / duration) * 100))
+                transcribed_up_to = max(seg['end'] for seg in all_segments)
+                pct = min(99, int((transcribed_up_to / duration) * 100))
                 with self._lock:
                     if self._is_stale(filepath):
                         return
                     self._progress['segments'] = list(all_segments)
                     self._progress['percent'] = pct
                     self._progress['rate'] = rate
-                    self._progress['transcribed_up_to'] = round(segment.end, 3)
+                    self._progress['transcribed_up_to'] = round(transcribed_up_to, 3)
 
             result = {
                 'language': info.language,
@@ -338,6 +356,8 @@ class TranscriptionEngine:
                 self._progress = {
                     'status': 'complete',
                     'percent': 100,
+                    'duration': duration,
+                    'transcribed_up_to': duration,
                     'segments': all_segments,
                     'error': None,
                 }

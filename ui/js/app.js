@@ -61,7 +61,7 @@ const App = (() => {
                 if (cb) cb.checked = true;
                 Sounds.setMuted(true);
             }
-        });
+        }).catch(() => {});
 
         setupSettingsHandlers();
     }
@@ -120,7 +120,7 @@ const App = (() => {
                         loadAudio(result);
                         playWhenReady();
                     }
-                });
+                }).catch(() => {});
             }
             return;
         }
@@ -279,6 +279,10 @@ const App = (() => {
 
     function onAudioError() {
         console.error('Audio error:', audio.error);
+        const mainDisplay = document.getElementById('main-display-text');
+        if (mainDisplay) {
+            mainDisplay.innerHTML = '<span class="display-placeholder" style="color:#ff4444;">Audio failed to load. Try another file.</span>';
+        }
     }
 
     // ── UI updates ───────────────────────────────────────────────
@@ -445,8 +449,8 @@ const App = (() => {
                     clearInterval(poll);
                     label.textContent = 'DOWNLOAD FAILED';
                     fill.style.width = '0%';
-                    detail.textContent = p.error || 'Unknown error';
-                    setTimeout(() => overlay.classList.add('hidden'), 3000);
+                    detail.textContent = (p.error || 'Unknown error') + ' — Open Settings to try another model.';
+                    setTimeout(() => overlay.classList.add('hidden'), 4000);
                 }
             } catch (_) {
                 clearInterval(poll);
