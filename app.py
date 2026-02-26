@@ -14,21 +14,23 @@ from urllib.parse import unquote, urlparse
 
 def _get_frozen_paths():
     """Return (app_dir, portable_dir) for serving UI/assets and for config/cache/models.
-    When frozen: app_dir has ui/ and Assets/ (from __file__ for onefile, or exe parent for standalone);
+    When frozen: app_dir has ui/ and Assets/ (PyInstaller: _MEIPASS; py2exe: exe parent);
     portable_dir is exe's parent for config/cache/hub. When not frozen: both are this file's parent."""
     frozen = getattr(sys, 'frozen', False) or '__compiled__' in dir(sys)
     if not frozen:
         base = Path(__file__).resolve().parent
         return base, base
     portable_dir = Path(sys.executable).resolve().parent
-    # Onefile: __file__ points into temp extraction dir with ui/ and Assets/. Standalone: same folder as exe.
-    try:
-        app_dir = Path(__file__).resolve().parent
-    except NameError:
-        app_dir = portable_dir
-    # If app_dir does not contain 'ui', we're likely standalone and __file__ may point elsewhere; use exe parent.
-    if not (app_dir / 'ui').exists() and (portable_dir / 'ui').exists():
-        app_dir = portable_dir
+    # PyInstaller onefile: sys._MEIPASS is the temp extraction dir with ui/ and Assets/
+    if getattr(sys, '_MEIPASS', None):
+        app_dir = Path(sys._MEIPASS)
+    else:
+        try:
+            app_dir = Path(__file__).resolve().parent
+        except NameError:
+            app_dir = portable_dir
+        if not (app_dir / 'ui').exists() and (portable_dir / 'ui').exists():
+            app_dir = portable_dir
     return app_dir, portable_dir
 
 
@@ -39,9 +41,12 @@ ASSETS_DIR = APP_DIR / 'Assets'
 _frozen = getattr(sys, 'frozen', False) or '__compiled__' in dir(sys)
 if _frozen:
     CONFIG_DIR = _portable_dir / 'HoloVox_data'
-    os.environ['HUGGINGFACE_HUB_CACHE'] = str(CONFIG_DIR / 'hub')
 else:
     CONFIG_DIR = Path.home() / '.holovox'
+
+HUB_CACHE_DIR = CONFIG_DIR / 'hub'
+os.environ['HF_HUB_CACHE'] = str(HUB_CACHE_DIR)
+os.environ['HUGGINGFACE_HUB_CACHE'] = str(HUB_CACHE_DIR)  # legacy alias
 
 CACHE_DIR = CONFIG_DIR / 'cache'
 SETTINGS_FILE = CONFIG_DIR / 'settings.json'
@@ -50,6 +55,7 @@ BOOKMARKS_FILE = CONFIG_DIR / 'bookmarks.json'
 try:
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     CACHE_DIR.mkdir(exist_ok=True)
+    HUB_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 except OSError:
     pass  # read-only or permission error; persistence will fail later
 
@@ -203,9 +209,10 @@ class API:
             CACHE_DIR,
             model_name=self._settings.get('whisper_model', 'base'),
             language=self._settings.get('language', 'auto'),
+            hub_cache_dir=HUB_CACHE_DIR,
         )
 
-    # ── Settings persistence ──────────────────────────────────────────
+    # settings
 
     def _load_settings(self):
         if SETTINGS_FILE.exists():
@@ -238,7 +245,7 @@ class API:
         with open(SETTINGS_FILE, 'w', encoding='utf-8') as f:
             json.dump(self._settings, f, indent=2)
 
-    # ── File / audio operations ───────────────────────────────────────
+    # file/audio
 
     def open_file(self):
         if not webview.windows:
@@ -289,7 +296,7 @@ class API:
             result['bookFiles'] = self._current_book_files
         return result
 
-    # ── Transcription ─────────────────────────────────────────────────
+    # transcription
 
     def start_transcription(self, filepath):
         self._transcriber.start(filepath)
@@ -321,7 +328,7 @@ class API:
         self._transcriber.start(self._current_file)
         return True
 
-    # ── Model management (launcher) ───────────────────────────────────
+    # models
 
     def get_available_models(self):
         raw = self._transcriber.get_available_models()
@@ -374,7 +381,7 @@ class API:
     def get_download_progress(self):
         return self._transcriber.get_download_progress()
 
-    # ── Library ───────────────────────────────────────────────────────
+    # library
 
     def scan_library(self):
         folder = self._settings.get('library_folder', '')
@@ -445,7 +452,7 @@ class API:
     def get_recent_files(self):
         return self._settings.get('recent_files', [])
 
-    # ── Bookmarks ─────────────────────────────────────────────────────
+    # bookmarks
 
     def save_bookmark(self, filepath, position, label):
         if not filepath or not isinstance(filepath, str) or not filepath.strip():
@@ -490,7 +497,7 @@ class API:
         with open(BOOKMARKS_FILE, 'w', encoding='utf-8') as f:
             json.dump(bookmarks, f, indent=2)
 
-    # ── Settings ──────────────────────────────────────────────────────
+    # settings
 
     def get_settings(self):
         return dict(self._settings)
@@ -518,7 +525,7 @@ class API:
             self._transcriber.set_language(value)
         return True
 
-    # ── Window control ────────────────────────────────────────────────
+    # window
 
     def close_window(self):
         if webview.windows:

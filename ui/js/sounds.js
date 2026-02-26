@@ -1,8 +1,3 @@
-/**
- * UI Sound Effects synthesizer using Web Audio API.
- * All sounds are generated procedurally -- no external audio files.
- */
-
 const Sounds = (() => {
     let ctx = null;
     let muted = false;

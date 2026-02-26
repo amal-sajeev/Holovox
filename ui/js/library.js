@@ -1,9 +1,3 @@
-/**
- * Audiobook library overlay panel.
- * Slides over the player to show library files and recent files.
- * Supports a configured library folder and one-off file opening.
- */
-
 const Library = (() => {
     let pyApi = null;
     let isOpen = false;

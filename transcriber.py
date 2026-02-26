@@ -17,8 +17,9 @@ class TranscriptionEngine:
         "vocabulary.*",
     ]
 
-    def __init__(self, cache_dir, model_name='base', language='auto'):
+    def __init__(self, cache_dir, model_name='base', language='auto', hub_cache_dir=None):
         self.cache_dir = Path(cache_dir)
+        self._hub_cache_dir = Path(hub_cache_dir) if hub_cache_dir else None
         self._model = None
         self._model_name = model_name
         self._language = language
@@ -48,14 +49,15 @@ class TranscriptionEngine:
     def set_language(self, language):
         self._language = language
 
-    # ── Model management (launcher) ──────────────────────────────
+    # models
 
     def get_available_models(self):
         import huggingface_hub
         from faster_whisper.utils import _MODELS
 
+        cache_dir = str(self._hub_cache_dir) if self._hub_cache_dir else None
         try:
-            cache_info = huggingface_hub.scan_cache_dir()
+            cache_info = huggingface_hub.scan_cache_dir(cache_dir=cache_dir)
             cached_repos = {repo.repo_id: repo for repo in cache_info.repos}
         except Exception:
             cached_repos = {}
@@ -79,8 +81,9 @@ class TranscriptionEngine:
         import huggingface_hub
         from faster_whisper.utils import _MODELS
 
+        cache_dir = str(self._hub_cache_dir) if self._hub_cache_dir else None
         try:
-            cache_info = huggingface_hub.scan_cache_dir()
+            cache_info = huggingface_hub.scan_cache_dir(cache_dir=cache_dir)
             repo_id_to_repo = {repo.repo_id: repo for repo in cache_info.repos}
         except Exception:
             repo_id_to_repo = {}
@@ -104,8 +107,9 @@ class TranscriptionEngine:
         if repo_id not in _MODELS.values():
             return False
 
+        cache_dir = str(self._hub_cache_dir) if self._hub_cache_dir else None
         try:
-            cache_info = huggingface_hub.scan_cache_dir()
+            cache_info = huggingface_hub.scan_cache_dir(cache_dir=cache_dir)
         except Exception:
             return False
 
@@ -202,7 +206,7 @@ class TranscriptionEngine:
         with self._lock:
             return dict(self._download_progress)
 
-    # ── Model loading ────────────────────────────────────────────
+    # loading
 
     def _get_model(self):
         if self._model is None:

@@ -1,8 +1,3 @@
-/**
- * Main application controller for the HoloVox audiobook player.
- * Bridges the pywebview Python API with the HTML frontend.
- */
-
 const App = (() => {
     let audio = null;
     let pyApi = null;

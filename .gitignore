@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+.eggs/
+build/
+*.manifest
+
+# Virtual environments
+venv/
+.venv/
+.env/
+.build_venv/
+
+# PyInstaller
+*.spec.bak
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Project data (user settings, cache, models)
+HoloVox_data/
+.holovox/
+
+# Logs
+*.log

@@ -1,9 +1,3 @@
-/**
- * Live transcription display with word-level karaoke highlighting.
- * Updates both the main display (current segment, large text) and
- * the sidebar transcript (full scrolling list).
- */
-
 const Transcription = (() => {
     let segments = [];
     let pollTimer = null;

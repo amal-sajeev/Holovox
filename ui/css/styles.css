@@ -1,8 +1,3 @@
-/* ═══════════════════════════════════════════════════════════════
-   HoloVox — Sci‑fi console audiobook player
-   Visual hierarchy: light metal frame → chamfered panels → dark screens
-   ═══════════════════════════════════════════════════════════════ */
-
 @font-face {
     font-family: 'DisplayFont';
     src: url('/ui/fonts/aurebesh.woff2') format('woff2'),
@@ -57,10 +52,7 @@ body {
     cursor: default;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PLAYER FRAME - dark brushed metal surface
-   ═══════════════════════════════════════════════════════════════ */
-
+/* player frame */
 #player-frame {
     position: relative;
     margin: 4px;
@@ -88,7 +80,6 @@ body {
         inset -2px -2px 0 rgba(0, 0, 0, 0.4);
 }
 
-/* Hex grid overlay on the metal frame */
 #player-frame::before {
     content: '';
     position: absolute;
@@ -107,10 +98,7 @@ body {
     opacity: 0.8;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   DISPLAY FONT UTILITY (decorative labels, hover for English)
-   ═══════════════════════════════════════════════════════════════ */
-
+/* display font */
 .display-font {
     font-family: var(--font-display);
     position: relative;
@@ -136,10 +124,7 @@ body {
 
 .display-font[data-en]:hover::after { opacity: 1; }
 
-/* ═══════════════════════════════════════════════════════════════
-   PANEL SECTION LABELS - etched into the metal frame
-   ═══════════════════════════════════════════════════════════════ */
-
+/* panel labels */
 .panel-label {
     font-family: var(--font-tech);
     font-size: 10px;
@@ -162,7 +147,6 @@ body {
     letter-spacing: 1px;
 }
 
-/* Accent line extending from labels */
 .panel-label::after {
     content: '';
     flex: 1;
@@ -170,10 +154,7 @@ body {
     background: linear-gradient(90deg, rgba(0,212,255,0.3), transparent);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PANEL BEZEL - brushed steel frame around dark panels
-   ═══════════════════════════════════════════════════════════════ */
-
+/* panel bezel */
 .panel-bezel {
     background-image: url('/assets/Brushed_gunmetal%20light.png');
     background-size: 200px 200px;
@@ -194,6 +175,7 @@ body {
 
 .panel-bezel--left {
     width: 420px;
+    min-width: 440px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -206,10 +188,7 @@ body {
     min-height: 0;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   RECESSED PANELS - chamfered dark inset areas
-   ═══════════════════════════════════════════════════════════════ */
-
+/* recessed panels */
 .recessed-screen {
     background: #060809;
     clip-path: polygon(
@@ -244,7 +223,6 @@ body {
     animation: edgeGlow 4s ease-in-out infinite;
 }
 
-/* CRT vignette */
 .recessed-screen::after {
     content: '';
     position: absolute;
@@ -271,10 +249,7 @@ body {
     animation: crtFlicker 4s ease-in-out infinite;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   TITLE BAR
-   ═══════════════════════════════════════════════════════════════ */
-
+/* title bar */
 #title-bar {
     display: flex;
     align-items: center;
@@ -371,10 +346,7 @@ body {
 #window-controls button:hover { background: #444; color: #fff; }
 #btn-close:hover { background: #661111; color: var(--red); border-color: var(--red); }
 
-/* ═══════════════════════════════════════════════════════════════
-   TIME DISPLAY ROW - recessed panel
-   ═══════════════════════════════════════════════════════════════ */
-
+/* time display */
 #time-row {
     display: flex;
     align-items: center;
@@ -436,10 +408,7 @@ body {
     opacity: 0.8;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   MAIN DISPLAY - current segment with word highlighting
-   ═══════════════════════════════════════════════════════════════ */
-
+/* main display */
 #display-wrapper {
     flex-shrink: 0;
 }
@@ -522,18 +491,13 @@ body {
     box-shadow: 0 0 6px rgba(0, 238, 85, 0.4);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   CONTROLS AREA - two-column layout
-   ═══════════════════════════════════════════════════════════════ */
-
+/* controls */
 #controls-area {
     display: flex;
     gap: 8px;
     flex: 1;
     min-height: 0;
 }
-
-/* ── Left column: transport + skip + knobs ────────────────────── */
 
 #left-controls {
     display: flex;
@@ -554,8 +518,6 @@ body {
     padding: 8px 14px;
 }
 
-/* ── Right column: transcript + utilities ─────────────────────── */
-
 #right-controls {
     flex: 1;
     display: flex;
@@ -563,8 +525,6 @@ body {
     gap: 5px;
     min-width: 320px;
 }
-
-/* ── Transport Buttons ────────────────────────────────────────── */
 
 #transport-buttons {
     display: flex;
@@ -596,10 +556,12 @@ body {
 .transport-btn .btn-off { display: block; }
 .transport-btn.active .btn-on { display: block; }
 .transport-btn.active .btn-off { display: none; }
+.transport-btn--lit-default .btn-on { display: block; }
+.transport-btn--lit-default .btn-off { display: none; }
+.transport-btn--lit-default:active .btn-on { display: none; }
+.transport-btn--lit-default:active .btn-off { display: block; }
 .transport-btn:hover { transform: scale(1.06); filter: brightness(1.15); }
 .transport-btn:active { transform: scale(0.94); }
-
-/* ── Skip Buttons ─────────────────────────────────────────────── */
 
 #skip-buttons {
     display: flex;
@@ -647,8 +609,6 @@ body {
     text-align: center;
 }
 
-/* ── Knobs Area ───────────────────────────────────────────────── */
-
 #knobs-area {
     display: flex;
     align-items: flex-start;
@@ -663,12 +623,14 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 1px;
+    flex-shrink: 0;
 }
 
 .knob-wrapper {
     display: flex;
     align-items: center;
     gap: 6px;
+    flex-shrink: 0;
 }
 
 .knob-side-label {
@@ -676,9 +638,11 @@ body {
     font-size: 13px;
     color: var(--text-green);
     text-shadow: var(--glow-green);
-    width: 30px;
+    min-width: 30px;
+    flex-shrink: 0;
     text-align: center;
     opacity: 0.85;
+    white-space: nowrap;
 }
 
 .knob {
@@ -706,13 +670,11 @@ body {
     letter-spacing: 1px;
     line-height: 1.3;
     flex-shrink: 0;
-    padding-bottom: 2px;
+    padding-bottom: 10px;
+    white-space: nowrap;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   TRANSCRIPT PANEL
-   ═══════════════════════════════════════════════════════════════ */
-
+/* transcript */
 #transcript-panel {
     flex: 1;
     display: flex;
@@ -774,10 +736,7 @@ body {
     text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   UTILITY ROW
-   ═══════════════════════════════════════════════════════════════ */
-
+/* utility row */
 #utility-row {
     display: flex;
     align-items: center;
@@ -815,10 +774,7 @@ body {
     box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   OVERLAYS
-   ═══════════════════════════════════════════════════════════════ */
-
+/* overlays */
 .overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -914,8 +870,6 @@ body {
     flex: 1;
 }
 
-/* ── Library / Recent / Bookmark lists ────────────────────────── */
-
 #library-list, #recent-list, #bookmarks-list {
     flex: 1;
     margin: 8px 16px;
@@ -978,8 +932,6 @@ body {
 .bookmark-item .bm-label { flex: 1; }
 .bookmark-item .bm-delete { color: #555; cursor: pointer; font-size: 14px; margin-left: 8px; transition: color 0.15s; }
 .bookmark-item .bm-delete:hover { color: var(--red); }
-
-/* ── Settings ─────────────────────────────────────────────────── */
 
 #settings-content {
     margin: 12px 16px;
@@ -1045,8 +997,6 @@ body {
 .cached-model-delete:hover { border-color: var(--amber); }
 .cached-models-empty { font-size: 11px; color: #666; margin: 8px 0; }
 
-/* ── Transcription status ─────────────────────────────────────── */
-
 .transcription-status {
     font-size: 10px;
     color: var(--amber);
@@ -1060,8 +1010,6 @@ body {
 
 .loading-dots::after { content: ''; animation: dots 1.5s steps(4) infinite; }
 @keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
-
-/* ── Transcription progress (in main display) ─────────────────── */
 
 .transcription-progress {
     display: flex;
@@ -1109,7 +1057,6 @@ body {
 
 .hidden { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
 
-/* Resize handles: fixed edge strips so frameless window can be resized by dragging edges */
 #resize-handles {
     position: fixed;
     inset: 0;
@@ -1131,10 +1078,7 @@ body {
 #resize-handles .resize-se { bottom: 0; right: 0; width: 6px; height: 6px; cursor: se-resize; }
 
 
-/* ═══════════════════════════════════════════════════════════════
-   BOOT SCREEN
-   ═══════════════════════════════════════════════════════════════ */
-
+/* boot screen */
 #boot-screen {
     position: fixed;
     inset: 0;
@@ -1206,10 +1150,7 @@ body {
 
 @keyframes cursorBlink { 0% { opacity: 1; } 50% { opacity: 0; } }
 
-/* ═══════════════════════════════════════════════════════════════
-   BOOT MODEL SELECTOR
-   ═══════════════════════════════════════════════════════════════ */
-
+/* boot model selector */
 .boot-hidden { display: none !important; }
 
 #boot-model-select {
@@ -1325,8 +1266,6 @@ body {
     text-shadow: 0 0 4px rgba(255, 149, 0, 0.3);
 }
 
-/* ── Boot download progress ──────────────────────────────────── */
-
 #boot-download-status {
     display: flex;
     flex-direction: column;
@@ -1368,10 +1307,7 @@ body {
     color: rgba(0, 212, 255, 0.4);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   MODEL DOWNLOAD OVERLAY
-   ═══════════════════════════════════════════════════════════════ */
-
+/* model download overlay */
 #download-overlay-body {
     display: flex;
     flex-direction: column;
@@ -1414,10 +1350,7 @@ body {
     color: rgba(0, 212, 255, 0.4);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   IDLE DATA STREAM (display font matrix in main display)
-   ═══════════════════════════════════════════════════════════════ */
-
+/* data stream */
 #data-stream-canvas {
     position: absolute;
     inset: 0;
@@ -1428,10 +1361,7 @@ body {
     z-index: 0;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ACCENT STRIPS - colored bars between sections
-   ═══════════════════════════════════════════════════════════════ */
-
+/* accent strips */
 .accent-strip {
     height: 1px;
     flex-shrink: 0;
@@ -1454,10 +1384,7 @@ body {
     box-shadow: 0 0 6px rgba(255,149,0,0.12);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   INDICATOR LED CLUSTERS
-   ═══════════════════════════════════════════════════════════════ */
-
+/* led clusters */
 .led-cluster {
     display: flex;
     gap: 4px;
@@ -1484,10 +1411,7 @@ body {
     animation: ledPulse 2s ease-in-out infinite;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   TECH READOUT - HUD-style scrolling data
-   ═══════════════════════════════════════════════════════════════ */
-
+/* tech readout */
 .tech-readout {
     font-family: var(--font-display);
     font-size: 8px;
@@ -1511,10 +1435,7 @@ body {
     100% { transform: translateX(-50%); }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ANIMATIONS
-   ═══════════════════════════════════════════════════════════════ */
-
+/* animations */
 @keyframes panelBreathe {
     0%, 100% { box-shadow: inset 0 0 20px rgba(0,0,0,0.9), inset 0 2px 6px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,238,85,0.03); }
     50%      { box-shadow: inset 0 0 20px rgba(0,0,0,0.9), inset 0 2px 6px rgba(0,0,0,0.7), inset 0 0 40px rgba(0,238,85,0.06); }
@@ -1549,10 +1470,7 @@ body {
     50%      { opacity: 0.8; box-shadow: 0 0 3px rgba(0,212,255,0.2); }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   SETTINGS MUTE TOGGLE
-   ═══════════════════════════════════════════════════════════════ */
-
+/* settings mute */
 .setting-toggle {
     display: flex;
     align-items: center;

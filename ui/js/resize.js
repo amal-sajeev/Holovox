@@ -1,7 +1,7 @@
 (function () {
     const EDGE = 6;
     const MIN_W = 950;
-    const MIN_H = 500;
+    const MIN_H = 600;
 
     let active = false;
     let edges = '';

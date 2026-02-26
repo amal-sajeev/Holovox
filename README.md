@@ -124,6 +124,27 @@ Access settings through the UI to configure:
 - **Retranscribe** — Re-run transcription with the current model
 - **UI sounds** — Toggle interface sound effects
 
+## Building a Portable Windows Executable
+
+For a portable Windows build (no Python install required), use **PyInstaller**. To include only project dependencies (smaller exe, avoids DLL issues), use the build script:
+
+```powershell
+.\build.ps1
+```
+
+This creates a clean virtual environment, installs only `pywebview` and `faster-whisper`, then builds. The exe is at `dist/HoloVox.exe`.
+
+**Manual build** (uses your current Python env; may pull in extra packages):
+
+```powershell
+pip install pyinstaller
+pyinstaller HoloVox.spec
+```
+
+Copy the exe anywhere to run. On first launch, a `HoloVox_data` folder is created next to the exe for settings, cache, and Whisper models.
+
+**Note:** py2exe is not recommended due to RecursionError with faster-whisper's dependency tree.
+
 ## Project Structure
 
 ```

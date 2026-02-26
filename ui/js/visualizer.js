@@ -1,9 +1,3 @@
-/**
- * Audio graph manager.
- * Handles AudioContext, GainNode for volume control.
- * (Canvas visualizer replaced by main text display.)
- */
-
 const Visualizer = (() => {
     let audioCtx = null;
     let gainNode = null;

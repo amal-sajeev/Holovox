@@ -1,12 +1,3 @@
-/**
- * Boot-up sequence with game-launcher model management.
- * 1. Typewriter boot lines (skippable)
- * 2. Wait for pywebview API
- * 3. Check available models
- * 4. If configured model is cached → show "ONLINE" → fade out
- * 5. If not → show model selector → download with progress → fade out
- */
-
 const Boot = (() => {
     const LINES = [
         'HOLOVOX AUDIO SYSTEMS v2.7.1',

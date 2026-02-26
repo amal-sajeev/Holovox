@@ -1,8 +1,3 @@
-"""
-Pre-download the faster-whisper base model into staging/HoloVox_data/hub
-so a Nuitka build can include it (--include-data-dir=./staging/HoloVox_data=HoloVox_data).
-Run from repo root: python scripts/download_base_model.py
-"""
 import os
 import sys
 from pathlib import Path

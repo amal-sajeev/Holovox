@@ -1,9 +1,3 @@
-/**
- * Rotary knob component.
- * Uses the dial_90_degree.png asset (indicator pointing up at 0deg rotation).
- * Drag vertically to change value; maps a value range to a 270-degree arc.
- */
-
 const Knobs = (() => {
     const ARC_DEGREES = 270;
     const MIN_ANGLE = -135;
