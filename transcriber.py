@@ -56,18 +56,78 @@ class TranscriptionEngine:
 
         try:
             cache_info = huggingface_hub.scan_cache_dir()
-            cached_repos = {repo.repo_id for repo in cache_info.repos}
+            cached_repos = {repo.repo_id: repo for repo in cache_info.repos}
         except Exception:
-            cached_repos = set()
+            cached_repos = {}
 
         results = []
         for name, repo_id in _MODELS.items():
-            results.append({
+            repo = cached_repos.get(repo_id)
+            item = {
                 'name': name,
                 'repo_id': repo_id,
                 'cached': repo_id in cached_repos,
-            })
+            }
+            if repo is not None:
+                item['size_on_disk'] = repo.size_on_disk
+                item['size_on_disk_str'] = repo.size_on_disk_str
+            results.append(item)
         return results
+
+    def get_cached_models_detail(self):
+        """Return list of cached models with name, repo_id, size for the Settings UI."""
+        import huggingface_hub
+        from faster_whisper.utils import _MODELS
+
+        try:
+            cache_info = huggingface_hub.scan_cache_dir()
+            repo_id_to_repo = {repo.repo_id: repo for repo in cache_info.repos}
+        except Exception:
+            repo_id_to_repo = {}
+
+        result = []
+        for name, repo_id in _MODELS.items():
+            repo = repo_id_to_repo.get(repo_id)
+            if repo is not None:
+                result.append({
+                    'name': name,
+                    'repo_id': repo_id,
+                    'size_on_disk_str': repo.size_on_disk_str,
+                })
+        return result
+
+    def delete_cached_model(self, repo_id):
+        """Delete a model from the Hugging Face cache by repo_id. Frees disk space."""
+        import huggingface_hub
+        from faster_whisper.utils import _MODELS
+
+        if repo_id not in _MODELS.values():
+            return False
+
+        try:
+            cache_info = huggingface_hub.scan_cache_dir()
+        except Exception:
+            return False
+
+        repo = None
+        for r in cache_info.repos:
+            if r.repo_id == repo_id:
+                repo = r
+                break
+        if repo is None:
+            return True  # already not cached
+
+        hashes = [rev.commit_hash for rev in repo.revisions]
+        strategy = cache_info.delete_revisions(*hashes)
+        strategy.execute()
+
+        # If the loaded model is this repo, clear it so next use reloads or user picks another
+        if self._model is not None and repo_id in _MODELS.values():
+            current_repo = _MODELS.get(self._model_name)
+            if current_repo == repo_id:
+                with self._lock:
+                    self._model = None
+        return True
 
     def download_model(self, name):
         from faster_whisper.utils import _MODELS

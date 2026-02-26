@@ -1,5 +1,5 @@
 /**
- * Main application controller for the Foobskin audiobook player.
+ * Main application controller for the HoloVox audiobook player.
  * Bridges the pywebview Python API with the HTML frontend.
  */
 
@@ -89,7 +89,7 @@ const App = (() => {
         stopDataStream();
 
         document.getElementById('title-text').textContent =
-            fileInfo.filename || 'AudioBook Player';
+            fileInfo.filename || 'HoloVox';
 
         Transcription.reset();
 
@@ -352,6 +352,9 @@ const App = (() => {
     function setupSettingsHandlers() {
         document.getElementById('btn-settings').addEventListener('click', () => {
             toggleOverlay('settings-overlay');
+            if (!document.getElementById('settings-overlay').classList.contains('hidden')) {
+                refreshCachedModelsList();
+            }
         });
         document.getElementById('settings-close').addEventListener('click', () => {
             hideOverlay('settings-overlay');
@@ -423,6 +426,52 @@ const App = (() => {
                 Transcription.startPolling(pyApi);
             });
         });
+
+        async function refreshCachedModelsList() {
+            const container = document.getElementById('cached-models-list');
+            if (!container || !pyApi) return;
+            try {
+                const list = await pyApi.get_cached_models_detail();
+                if (list.length === 0) {
+                    container.innerHTML = '<p class="cached-models-empty">No cached models. Download a model from the list above or at first run.</p>';
+                    return;
+                }
+                container.innerHTML = list.map(m => {
+                    const safeName = m.name.replace(/"/g, '&quot;');
+                    const safeRepo = m.repo_id.replace(/"/g, '&quot;');
+                    return `<div class="cached-model-row" data-repo-id="${safeRepo}">
+                        <span class="cached-model-name">${escapeHtml(m.name)}</span>
+                        <span class="cached-model-size">${escapeHtml(m.size_on_disk_str)}</span>
+                        <button type="button" class="util-btn cached-model-delete" data-repo-id="${safeRepo}" data-name="${safeName}">Delete</button>
+                    </div>`;
+                }).join('');
+
+                container.querySelectorAll('.cached-model-delete').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const repoId = btn.dataset.repoId;
+                        const name = btn.dataset.name;
+                        if (!confirm(`Delete ${name}? You can re-download it later from the model list.`)) return;
+                        try {
+                            await pyApi.delete_cached_model(repoId);
+                            const settings = await pyApi.get_settings();
+                            const modelSel = document.getElementById('setting-model');
+                            if (modelSel && settings.whisper_model) modelSel.value = settings.whisper_model;
+                            refreshCachedModelsList();
+                        } catch (e) {
+                            console.error('Delete cached model failed', e);
+                        }
+                    });
+                });
+            } catch (e) {
+                container.innerHTML = '<p class="cached-models-empty">Could not load cache info.</p>';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
 
         document.querySelectorAll('.overlay').forEach(overlay => {
             overlay.addEventListener('click', e => {
@@ -505,7 +554,7 @@ const App = (() => {
         el.textContent = text + text;
     }
 
-    // ── Idle Aurebesh data stream ────────────────────────────────
+    // ── Idle display-font data stream ────────────────────────────────
 
     let dataStreamInterval = null;
 
@@ -513,7 +562,7 @@ const App = (() => {
         const canvas = document.getElementById('data-stream-canvas');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
-        const aurebeshChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const displayChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         const columns = [];
 
         function resize() {
@@ -532,11 +581,11 @@ const App = (() => {
         dataStreamInterval = setInterval(() => {
             ctx.fillStyle = 'rgba(6, 8, 9, 0.15)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.font = '12px Aurebesh, monospace';
+            ctx.font = '12px DisplayFont, monospace';
             ctx.fillStyle = 'rgba(0, 221, 68, 0.35)';
 
             for (let i = 0; i < columns.length; i++) {
-                const char = aurebeshChars[Math.floor(Math.random() * aurebeshChars.length)];
+                const char = displayChars[Math.floor(Math.random() * displayChars.length)];
                 ctx.fillText(char, i * 14, columns[i]);
                 if (columns[i] > canvas.height && Math.random() > 0.97) {
                     columns[i] = 0;

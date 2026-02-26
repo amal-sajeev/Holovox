@@ -1,5 +1,5 @@
 /**
- * Imperial boot-up sequence with game-launcher model management.
+ * Boot-up sequence with game-launcher model management.
  * 1. Typewriter boot lines (skippable)
  * 2. Wait for pywebview API
  * 3. Check available models
@@ -9,7 +9,7 @@
 
 const Boot = (() => {
     const LINES = [
-        'IMPERIAL AUDIO SYSTEMS v2.7.1',
+        'HOLOVOX AUDIO SYSTEMS v2.7.1',
         'INITIALIZING COMM ARRAY...',
         'LOADING SIGNAL PROCESSORS...',
         'CALIBRATING AUDIO MODULATORS...',

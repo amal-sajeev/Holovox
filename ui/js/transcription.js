@@ -294,7 +294,7 @@ const Transcription = (() => {
 
         if (!status) {
             if (segments.length === 0) {
-                mainDisplay.innerHTML = '<span class="display-placeholder aurebesh" data-en="[ AWAITING SIGNAL ]">[ AWAITING SIGNAL ]</span>';
+                mainDisplay.innerHTML = '<span class="display-placeholder display-font" data-en="[ AWAITING SIGNAL ]">[ AWAITING SIGNAL ]</span>';
             }
             return;
         }
