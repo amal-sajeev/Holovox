@@ -80,7 +80,8 @@ const Library = (() => {
             const firstPath = book.files && book.files[0] ? book.files[0].path : '';
             const count = book.files ? book.files.length : 0;
             const trackLabel = count > 0 ? `<span class="item-folder">${count} track${count !== 1 ? 's' : ''}</span>` : '';
-            parts.push(`<div class="library-item library-item-book" data-type="book" data-path="${escapeAttr(book.path)}" data-first-path="${escapeAttr(firstPath)}">
+            const bookPaths = book.files ? encodeURIComponent(JSON.stringify(book.files.map(f => f.path))) : '';
+            parts.push(`<div class="library-item library-item-book" data-type="book" data-path="${escapeAttr(book.path)}" data-first-path="${escapeAttr(firstPath)}" data-book-paths="${escapeAttr(bookPaths)}">
                 <span class="item-name">${escapeHtml(book.name)}</span>
                 ${trackLabel}
             </div>`);
@@ -93,7 +94,9 @@ const Library = (() => {
                 const type = item.dataset.type || 'file';
                 const pathToLoad = type === 'book' ? item.dataset.firstPath : item.dataset.path;
                 if (!pathToLoad) return;
-                pyApi.load_file(pathToLoad).then(result => {
+                const bookFilepaths = type === 'book' && item.dataset.bookPaths ?
+                    JSON.parse(decodeURIComponent(item.dataset.bookPaths)) : null;
+                pyApi.load_file(pathToLoad, bookFilepaths).then(result => {
                     if (result) {
                         App.loadAudio(result);
                         hide();

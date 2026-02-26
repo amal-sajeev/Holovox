@@ -28,7 +28,7 @@ except OSError:
 
 KNOWN_LANGUAGES = {'auto', 'en', 'es', 'fr', 'de', 'it', 'pt', 'ja', 'ko', 'zh', 'ru', 'ar', 'hi'}
 
-SETTINGS_KEYS = {'library_folder', 'recent_files', 'whisper_model', 'language', 'mute_sounds'}
+SETTINGS_KEYS = {'library_folder', 'recent_files', 'whisper_model', 'language', 'mute_sounds', 'pre_transcribe_chapters'}
 
 # Extensions for library scan (must match open-file dialog: mp3, m4a, m4b, flac, wav, ogg)
 AUDIO_EXTENSIONS = {'.mp3', '.m4a', '.m4b', '.flac', '.wav', '.ogg'}
@@ -168,6 +168,7 @@ class API:
     def __init__(self, server_port):
         self._server_port = server_port
         self._current_file = None
+        self._current_book_files = None
         self._load_settings()
         self._transcriber = TranscriptionEngine(
             CACHE_DIR,
@@ -188,6 +189,7 @@ class API:
                     'recent_files': [],
                     'whisper_model': 'base',
                     'language': 'auto',
+                    'pre_transcribe_chapters': 1,
                 }
                 self._save_settings()
         else:
@@ -196,7 +198,11 @@ class API:
                 'recent_files': [],
                 'whisper_model': 'base',
                 'language': 'auto',
+                'pre_transcribe_chapters': 1,
             }
+            self._save_settings()
+        if 'pre_transcribe_chapters' not in self._settings:
+            self._settings['pre_transcribe_chapters'] = 1
             self._save_settings()
 
     def _save_settings(self):
@@ -219,12 +225,16 @@ class API:
             return self._prepare_audio(result[0])
         return None
 
-    def load_file(self, filepath):
+    def load_file(self, filepath, book_filepaths=None):
         if not filepath or '..' in filepath:
             return None
-        if os.path.isfile(filepath):
-            return self._prepare_audio(filepath)
-        return None
+        if not os.path.isfile(filepath):
+            return None
+        if book_filepaths and isinstance(book_filepaths, list) and len(book_filepaths) > 0:
+            self._current_book_files = [p for p in book_filepaths if os.path.isfile(p)]
+        else:
+            self._current_book_files = None
+        return self._prepare_audio(filepath)
 
     def _prepare_audio(self, filepath):
         AudioHandler.allowed_audio_paths.append(filepath)
@@ -241,16 +251,32 @@ class API:
         self._settings['recent_files'] = recent[:20]
         self._save_settings()
 
-        return {
+        result = {
             'url': url,
             'filename': os.path.basename(filepath),
             'filepath': filepath,
         }
+        if self._current_book_files:
+            result['bookFiles'] = self._current_book_files
+        return result
 
     # ── Transcription ─────────────────────────────────────────────────
 
     def start_transcription(self, filepath):
         self._transcriber.start(filepath)
+        book_files = self._current_book_files
+        if book_files and filepath in book_files:
+            pre_count = self._settings.get('pre_transcribe_chapters', 1)
+            try:
+                pre_count = max(0, min(5, int(pre_count)))
+            except (TypeError, ValueError):
+                pre_count = 1
+            idx = book_files.index(filepath)
+            remaining = len(book_files) - idx - 1
+            to_queue = min(pre_count, remaining)
+            if to_queue > 0:
+                paths = [book_files[idx + 1 + i] for i in range(to_queue)]
+                self._transcriber.queue_pre_transcribe(paths)
         return True
 
     def get_transcription_progress(self):
@@ -423,6 +449,14 @@ class API:
             return False
         if key == 'language' and value not in KNOWN_LANGUAGES:
             return False
+        if key == 'pre_transcribe_chapters':
+            try:
+                v = int(value)
+                if v < 0 or v > 5:
+                    return False
+                value = v
+            except (TypeError, ValueError):
+                return False
         self._settings[key] = value
         self._save_settings()
         if key == 'whisper_model':

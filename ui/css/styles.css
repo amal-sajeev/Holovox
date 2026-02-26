@@ -1010,6 +1010,19 @@ body {
 .setting-select:focus { border-color: var(--cyan); box-shadow: var(--glow-cyan); }
 .setting-select option { background: #1a1a1a; color: var(--text-cyan); }
 
+.setting-input {
+    font-family: var(--font-tech);
+    font-size: 11px;
+    background: #1a1a1a;
+    color: var(--text-cyan);
+    border: 1px solid #444;
+    padding: 4px 8px;
+    border-radius: 3px;
+    width: 48px;
+    outline: none;
+}
+.setting-input:focus { border-color: var(--cyan); box-shadow: var(--glow-cyan); }
+
 /* ── Transcription status ─────────────────────────────────────── */
 
 .transcription-status {

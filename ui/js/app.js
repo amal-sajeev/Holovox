@@ -7,6 +7,8 @@ const App = (() => {
     let audio = null;
     let pyApi = null;
     let currentFile = null;
+    let currentBookFiles = null;
+    let currentChapterIndex = 0;
     let isPlaying = false;
     let updateTimer = null;
 
@@ -61,6 +63,10 @@ const App = (() => {
                 if (cb) cb.checked = true;
                 Sounds.setMuted(true);
             }
+            if (settings.pre_transcribe_chapters != null) {
+                const el = document.getElementById('setting-pre-transcribe');
+                if (el) el.value = Math.max(0, Math.min(5, settings.pre_transcribe_chapters));
+            }
         }).catch(() => {});
 
         setupSettingsHandlers();
@@ -72,6 +78,12 @@ const App = (() => {
         if (!fileInfo || !fileInfo.url) return;
 
         currentFile = fileInfo;
+        currentBookFiles = fileInfo.bookFiles || null;
+        currentChapterIndex = 0;
+        if (currentBookFiles && fileInfo.filepath) {
+            const idx = currentBookFiles.indexOf(fileInfo.filepath);
+            if (idx >= 0) currentChapterIndex = idx;
+        }
         audio.src = fileInfo.url;
         audio.load();
         stopDataStream();
@@ -264,6 +276,15 @@ const App = (() => {
     function onEnded() {
         isPlaying = false;
         updateTransportState(false);
+        if (currentBookFiles && currentChapterIndex + 1 < currentBookFiles.length && pyApi) {
+            const nextPath = currentBookFiles[currentChapterIndex + 1];
+            pyApi.load_file(nextPath, currentBookFiles).then(result => {
+                if (result) {
+                    loadAudio(result);
+                    playWhenReady();
+                }
+            }).catch(() => {});
+        }
     }
 
     function onTimeUpdate() {
@@ -380,6 +401,17 @@ const App = (() => {
             muteCb.addEventListener('change', () => {
                 Sounds.setMuted(muteCb.checked);
                 if (pyApi) pyApi.update_settings('mute_sounds', muteCb.checked);
+            });
+        }
+
+        const preTranscribeEl = document.getElementById('setting-pre-transcribe');
+        if (preTranscribeEl) {
+            preTranscribeEl.addEventListener('change', () => {
+                if (pyApi) {
+                    const v = Math.max(0, Math.min(5, parseInt(preTranscribeEl.value, 10) || 0));
+                    pyApi.update_settings('pre_transcribe_chapters', v);
+                    preTranscribeEl.value = v;
+                }
             });
         }
 

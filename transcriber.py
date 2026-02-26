@@ -36,6 +36,8 @@ class TranscriptionEngine:
             'model_name': '',
             'error': None,
         }
+        self._pre_transcribe_queue = []
+        self._pre_transcribe_lock = threading.Lock()
         atexit.register(self._save_partial)
 
     def set_model(self, name):
@@ -228,7 +230,38 @@ class TranscriptionEngine:
         except Exception:
             pass
 
+    def queue_pre_transcribe(self, paths):
+        """Add file paths to the background pre-transcribe queue. Skips already-cached and already-queued."""
+        if not paths:
+            return
+        with self._pre_transcribe_lock:
+            for p in paths:
+                if self.get_cached(p):
+                    continue
+                if p in self._pre_transcribe_queue:
+                    continue
+                self._pre_transcribe_queue.append(p)
+
+    def _dequeue_and_transcribe_background(self):
+        """Pop next path from queue and transcribe in background (cache only, no progress)."""
+        with self._pre_transcribe_lock:
+            if not self._pre_transcribe_queue:
+                return
+            filepath = self._pre_transcribe_queue.pop(0)
+        if self.get_cached(filepath):
+            self._dequeue_and_transcribe_background()
+            return
+        t = threading.Thread(
+            target=self._transcribe,
+            args=(filepath, None, 0.0, True),
+            daemon=True,
+        )
+        t.start()
+
     def start(self, filepath):
+        with self._pre_transcribe_lock:
+            if filepath in self._pre_transcribe_queue:
+                self._pre_transcribe_queue.remove(filepath)
         cached = self.get_cached(filepath)
         if cached:
             with self._lock:
@@ -256,7 +289,7 @@ class TranscriptionEngine:
 
         t = threading.Thread(
             target=self._transcribe,
-            args=(filepath, prior_segments, resume_after),
+            args=(filepath, prior_segments, resume_after, False),
             daemon=True,
         )
         t.start()
@@ -264,16 +297,17 @@ class TranscriptionEngine:
     def _is_stale(self, filepath):
         return self._current_filepath != filepath
 
-    def _transcribe(self, filepath, prior_segments=None, resume_after=0.0):
+    def _transcribe(self, filepath, prior_segments=None, resume_after=0.0, is_background=False):
         try:
             model = self._get_model()
 
-            with self._lock:
-                if self._is_stale(filepath):
-                    return
-                self._progress['status'] = 'transcribing'
+            if not is_background:
+                with self._lock:
+                    if self._is_stale(filepath):
+                        return
+                    self._progress['status'] = 'transcribing'
 
-            print(f'[Whisper] Starting transcription: {filepath}')
+            print(f'[Whisper] Starting transcription: {filepath}' + (' (background)' if is_background else ''))
             lang = self._language if self._language != 'auto' else None
             segments_iter, info = model.transcribe(
                 filepath,
@@ -285,8 +319,9 @@ class TranscriptionEngine:
             duration = info.duration or 1.0
             print(f'[Whisper] Audio duration: {duration:.1f}s, language: {info.language}')
 
-            with self._lock:
-                self._progress['duration'] = duration
+            if not is_background:
+                with self._lock:
+                    self._progress['duration'] = duration
 
             all_segments = list(prior_segments) if prior_segments else []
             wall_start = None
@@ -296,9 +331,10 @@ class TranscriptionEngine:
                 if segment.end <= resume_after:
                     continue
 
-                with self._lock:
-                    if self._is_stale(filepath):
-                        return
+                if not is_background:
+                    with self._lock:
+                        if self._is_stale(filepath):
+                            return
 
                 if wall_start is None:
                     wall_start = time.monotonic()
@@ -328,13 +364,14 @@ class TranscriptionEngine:
 
                 transcribed_up_to = max(seg['end'] for seg in all_segments)
                 pct = min(99, int((transcribed_up_to / duration) * 100))
-                with self._lock:
-                    if self._is_stale(filepath):
-                        return
-                    self._progress['segments'] = list(all_segments)
-                    self._progress['percent'] = pct
-                    self._progress['rate'] = rate
-                    self._progress['transcribed_up_to'] = round(transcribed_up_to, 3)
+                if not is_background:
+                    with self._lock:
+                        if self._is_stale(filepath):
+                            return
+                        self._progress['segments'] = list(all_segments)
+                        self._progress['percent'] = pct
+                        self._progress['rate'] = rate
+                        self._progress['transcribed_up_to'] = round(transcribed_up_to, 3)
 
             result = {
                 'language': info.language,
@@ -350,8 +387,12 @@ class TranscriptionEngine:
             except Exception:
                 pass
 
+            if is_background:
+                self._dequeue_and_transcribe_background()
+                return
             with self._lock:
                 if self._is_stale(filepath):
+                    self._dequeue_and_transcribe_background()
                     return
                 self._progress = {
                     'status': 'complete',
@@ -361,11 +402,16 @@ class TranscriptionEngine:
                     'segments': all_segments,
                     'error': None,
                 }
+            self._dequeue_and_transcribe_background()
 
         except Exception as e:
             print(f'[Whisper] Transcription error: {e}')
+            if is_background:
+                self._dequeue_and_transcribe_background()
+                return
             with self._lock:
                 if self._is_stale(filepath):
+                    self._dequeue_and_transcribe_background()
                     return
                 self._progress = {
                     'status': 'error',
