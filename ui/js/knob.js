@@ -23,8 +23,9 @@ const Knobs = (() => {
         if (Number.isNaN(value) || value < min || value > max) value = min;
         const safeDefault = Number.isNaN(defaultVal) || defaultVal < min || defaultVal > max ? value : defaultVal;
 
-        const img = el.querySelector('.knob-img');
-        const state = { el, img, min, max, value, defaultVal: safeDefault, onChange };
+        const notch = el.querySelector('.knob-notch');
+        if (!notch) return;
+        const state = { el, notch, min, max, value, defaultVal: safeDefault, onChange };
         knobs[elementId] = state;
 
         updateKnobVisual(state);
@@ -80,10 +81,11 @@ const Knobs = (() => {
     }
 
     function updateKnobVisual(state) {
+        if (!state.notch) return;
         const range = state.max - state.min;
         const pct = range <= 0 ? 0 : (state.value - state.min) / range;
         const angle = MIN_ANGLE + pct * ARC_DEGREES;
-        state.img.style.transform = `rotate(${angle}deg)`;
+        state.notch.style.transform = `rotate(${angle}deg)`;
     }
 
     // ── Callbacks ────────────────────────────────────────────────
