@@ -163,28 +163,29 @@ class TranscriptionEngine:
         try:
             import huggingface_hub
             from faster_whisper.utils import _MODELS
-            import tqdm.auto as tqdm_mod
+            from tqdm.auto import tqdm as base_tqdm
 
             repo_id = _MODELS.get(name, name)
             engine = self
-            orig_tqdm = tqdm_mod.tqdm
 
-            class _ProgressTqdm(orig_tqdm):
+            class _ProgressTqdm(base_tqdm):
+                """Custom tqdm that reports percent to engine for UI progress bar."""
+                def __init__(self, *args, **kwargs):
+                    kwargs.pop('name', None)  # huggingface_hub passes this; standard tqdm doesn't accept it
+                    super().__init__(*args, **kwargs)
+
                 def update(self, n=1):
                     super().update(n)
-                    if self.total:
+                    if self.total and self.total > 0:
                         pct = min(99, int(self.n / self.total * 100))
                         with engine._lock:
                             engine._download_progress['percent'] = pct
 
-            tqdm_mod.tqdm = _ProgressTqdm
-            try:
-                huggingface_hub.snapshot_download(
-                    repo_id,
-                    allow_patterns=self._ALLOW_PATTERNS,
-                )
-            finally:
-                tqdm_mod.tqdm = orig_tqdm
+            huggingface_hub.snapshot_download(
+                repo_id,
+                allow_patterns=self._ALLOW_PATTERNS,
+                tqdm_class=_ProgressTqdm,
+            )
 
             with self._lock:
                 self._download_progress = {

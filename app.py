@@ -59,6 +59,24 @@ try:
 except OSError:
     pass  # read-only or permission error; persistence will fail later
 
+# Force copy mode instead of symlinks for our hub cache (avoids WinError 1314 on Windows
+# when Developer Mode is not enabled). Must run before any huggingface_hub download.
+try:
+    from huggingface_hub import file_download
+    _orig_are_symlinks = file_download.are_symlinks_supported
+    _hub_cache = str(HUB_CACHE_DIR.resolve())
+
+    def _patched_are_symlinks(cache_dir=None):
+        if cache_dir:
+            path = str(os.path.abspath(os.path.expanduser(cache_dir)))
+            if _hub_cache in path or path.startswith(_hub_cache + os.sep):
+                return False
+        return _orig_are_symlinks(cache_dir)
+
+    file_download.are_symlinks_supported = _patched_are_symlinks
+except Exception:
+    pass
+
 from transcriber import TranscriptionEngine
 
 KNOWN_LANGUAGES = {'auto', 'en', 'es', 'fr', 'de', 'it', 'pt', 'ja', 'ko', 'zh', 'ru', 'ar', 'hi'}
